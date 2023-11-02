@@ -28,13 +28,15 @@ DISPLAY_DESC:
 dd 0x80000007
 dd DESC_DISPLAY_HIGH4
 
+; get size of gdt
+GDT_SIZE equ $-GDT_BASE 
+
 ; Reserve space for other segment descriptors
 times 60 dq 0
 
 ;------------------------
 ; set GDTR --> GDT address and size
 ;------------------------
-GDT_SIZE equ $-GDT_BASE
 GDT_LIMIT equ GDT_SIZE-1
 gdt_ptr: 
 dw GDT_LIMIT 
