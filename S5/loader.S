@@ -153,12 +153,12 @@ shl edx, 16
 or edx, eax
 add edx, 0x100000
 
-.mem_retrieve_ok:
-mov [total_mem_bytes], edx
-
 ; halt CPU until the next external interrupt is fired (happened)
 .error_hlt:
 hlt 
+
+.mem_retrieve_ok:
+mov [total_mem_bytes], edx
 
 ;------------------------
 ; Start entering protected mode in three steps
