@@ -1,3 +1,4 @@
+; xun morris 2023-10-29
 SECTION MBR vstart=0x7c00
 ; initialize register status
 mov ax, cs
