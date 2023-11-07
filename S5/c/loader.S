@@ -240,16 +240,21 @@ mov cr0, eax
 lgdt [gdt_ptr]
 
 
+;jmp $
+
 ; ============================================================
 ; Now! enter kernel!
 ; ============================================================
 jmp SELECTOR_CODE:enter_kernel
 enter_kernel:
 call kernel_init
+
 mov esp, 0xc009f000
+
+mov byte [gs:160], 'K'
+
 jmp KERNEL_ENTRY_POINT 
 
-;jmp $
 
 ; ============================================================
 ; Function: Create page directory table and page table
