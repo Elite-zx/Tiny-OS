@@ -67,7 +67,7 @@ times 244 db 0
 ARDS_num:
 dw 0
 
-; LOADER_BASE_ADDR + 0x300
+; LOADER_BASE_ADDR + 0x300 = 0xc00
 loader_start:
 ;------------------------
 ; Subfunction 0xE820 of BIOS 0x15 interrupt 
@@ -205,7 +205,7 @@ mov gs, ax
 mov eax, KERNEL_START_SECTOR
 mov ebx, KERNEL_BIN_BASE_ADDR
 mov ecx, 200
-call rd_disk_m_16
+call rd_disk_m_32
 
 
 ;------------------------
@@ -239,9 +239,17 @@ mov cr0, eax
 ; update the value of GDTR
 lgdt [gdt_ptr]
 
-mov byte [gs:160], 'V'
 
-jmp $
+; ============================================================
+; Now! enter kernel!
+; ============================================================
+jmp SELECTOR_CODE:enter_kernel
+enter_kernel:
+call kernel_init
+mov esp, 0xc009f000
+jmp KERNEL_ENTRY_POINT 
+
+;jmp $
 
 ; ============================================================
 ; Function: Create page directory table and page table
@@ -400,13 +408,64 @@ xor ebx, ebx
 xor ecx, ecx
 xor edx, edx
 
+;---------------------------------------------
 ; extract program header info from ELF file header
-; e_phentsize (2 bytes) -> size of program header table 
+;---------------------------------------------
+; e_phentsize (2 bytes) -> size of program header entry 
 mov dx, [KERNEL_BIN_BASE_ADDR + 42]
 ; e_phoff (4 bytes) -> start of program header table
 mov ebx, [KERNEL_BIN_BASE_ADDR + 28]
 add ebx,  KERNEL_BIN_BASE_ADDR
 ; e_phnum (2 bytes) -> entry count of program header table
-mov cx, [KERNEL_BIN_BASE_ADDR++44]
+mov cx, [KERNEL_BIN_BASE_ADDR + 44]
+
+;---------------------------------------------
+; handle each segment in ELF file
+;---------------------------------------------
+.each_segment:
+; p_type
+cmp byte [ebx+0], PT_NULL
+je .PT_NULL
+
+; p_filesz = size
+push dword [ebx+16]
+
+; p_offset + base_addr = src addr
+mov eax, [ebx+4]
+add eax, KERNEL_BIN_BASE_ADDR
+push eax
+
+;p_vaddr = dest addr
+push dword [ebx+8]
+call mem_cpy
+add esp, 12
+
+.PT_NULL:
+; current segment is empty, move to next segment
+add ebx, edx
+loop .each_segment
+ret
+
+;---------------------------------------------
+; Function like memcpy(void*dest,const void* src, size_t n)
+;---------------------------------------------
+mem_cpy:
+; set direction flag bit to 0, 
+; this means that the transfer direction is towards high address
+cld
+push ebp
+mov ebp, esp
+push ecx
+
+; data movement:  ds:esi --> es:edi
+mov edi, [ebp+8]
+mov esi, [ebp+12]
+mov ecx, [ebp+16]
+; repeat movsb, ecx  times
+rep movsb
+
+pop ecx
+pop ebp
+ret
 
 

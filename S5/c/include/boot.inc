@@ -99,7 +99,15 @@ PG_US_S equ 000b
 PG_US_U equ 100b
 
 ;------------------------------------
+; ELF segment related value
+;------------------------------------
+PT_NULL equ 0
+
+;------------------------------------
 ; kernel attribute
 ;------------------------------------
 KERNEL_START_SECTOR equ 0x9
 KERNEL_BIN_BASE_ADDR equ 0x70000
+KERNEL_ENTRY_POINT equ 0xc0001500
+
+
