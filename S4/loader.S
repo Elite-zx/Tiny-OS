@@ -95,7 +95,8 @@ mov esp, LOADER_STACK_TOP
 mov ax, SELECTOR_DISPLAY
 mov gs, ax
 
-mov byte [gs:160], 'R'
+mov byte [gs:160], 'P'
+mov byte [gs:162], 'M'
 
 jmp $
 
