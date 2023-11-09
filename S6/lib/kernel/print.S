@@ -1,0 +1,169 @@
+;------------------------
+; Author: Xun Morris |
+; Time: 2023-11-09 |
+;------------------------
+; video selector attribute
+TI_GDT equ 0
+RPL0 equ 0
+SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
+
+; ============================================================
+; Function put_char: Print a character from the stack at the cursor 
+; ============================================================
+global put_char
+put_char:
+;------------------------
+; push all double word register (such as eax,ecx,...)
+;------------------------
+pushad
+
+;------------------------
+; set video memory selector
+;------------------------
+mov ax, SELECTOR_VIDEO
+mov gs, ax 
+
+;------------------------
+; get the cursor position (16 bits) from the graphics card's register
+;------------------------
+; high 8 bits
+mov dx, 0x03d4
+mov al, 0x0e
+out dx, al
+mov dx, 0x03d5
+in al, dx
+mov ah, al
+; low 8 bits
+; specify index value in Address Register
+mov dx, 0x03d4
+mov al, 0x0f
+out dx, al
+; retrieve data from Data Register , which represents the register corresponding to the index in Address Register
+mov dx, 0x03d5
+in al, dx
+; Now register bx stores the (linear) coordinates of the cursor
+mov bx, ax
+
+;------------------------
+; retrieve the character to be printed
+;------------------------
+; 32 bytes of register space + 4 bytes of caller return address
+mov ecx, [esp+36]
+ 
+;------------------------
+; Process the characters to be printed --- do special processing for control characters, and print ordinary visible characters. If the visible characters exceed the screen (cmp bx, 2000), add a carriage return processing operation
+;------------------------
+cmp cl, 0xd
+jz .is_carriage_return
+cmp cl, 0xa
+jz .is_line_feed
+cmp cl, 0x8
+jz .is_backspace
+jmp .put_other
+
+.is_backspace:
+dec bx
+; The cursor is the coordinate of the character, and a character occupies 2 bytes, so to write to the video memory through the cursor, the cursor needs x2
+; bx: the cursor position ---> the position in the video memory
+shl bx, 1
+
+mov byte [gs:bx], 0x20
+inc bx 
+mov byte [gs:bx], 0x07
+; restore the bx value (the position of cursor)
+; bx: the position in the video memory ---> the cursor position
+shr bx, 1
+jmp .set_cursor
+
+.put_other:
+shl bx, 1
+mov [gs:bx], cl
+inc bx
+mov byte [gs:bx], 0x07
+shr bx, 1
+inc bx
+cmp bx, 2000
+jl .set_cursor
+
+; \n --- moves the cursor to the beginning of the next line
+.is_line_feed:
+; \r --- moves the cursor to the beginning of the same line
+; actually I treat \r like \n 
+.is_carriage_return:
+; 16-bit division
+xor dx, dx
+mov ax, bx
+mov si, 80
+div si
+; let bx (cursor) be the first coordinate of the line (carriage return done!)
+sub bx, dx
+; let bx (cursor) be the first coordinate of the next line (line feed done!)
+add bx, 80
+; if the cursor exceeds the screen (the result of instruction jl will be false), scroll the srceen 
+cmp bx, 2000
+jl .set_cursor
+
+;------------------------
+; roll_screen for 2 reasons:
+; 1.The cursor value exceeds the maximum number of characters on a screen (1999)
+; 2.There is a newline character on the last line of the screen
+;
+; the task that moving the cursor (bx, actually) has been completed in processing the carriage return character
+;------------------------
+.roll_screen:
+; Cover lines 0~23 with lines 1~24
+cld 
+; ((2000-80)*2)/4=960
+mov ecx, 960
+mov esi, 0xc00b80a0
+; mov 4 bytes (double word) each time
+rep movsd
+
+; clear the last line in current screen by filling with whitespace (0x0720)
+; 1920*2 = 3840
+mov ebx, 3840
+mov ecx, 80
+.cls:
+mov word [gs:ebx], 0x0720
+add ebx, 2
+loop .cls
+; update cursor position info --- beginning of the last line
+mov bx, 1920
+
+;------------------------
+; Update cursor position info in graphics card
+;------------------------
+.set_cursor:
+; set high 8 bits
+mov dx, 0x03d4
+mov al, 0x0e
+out dx, al
+
+mov dx, 0x03d5
+mov al, bh
+out dx, al
+
+; set low 8 bits
+mov dx, 0x03d4
+mov al, 0x0f
+out dx, al
+
+mov dx, 0x03d5
+mov al, bl
+out dx, al
+
+.put_char_end:
+popad
+ret
+
+
+
+
+
+
+
+
+
+
+
+
