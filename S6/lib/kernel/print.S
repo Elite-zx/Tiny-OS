@@ -7,12 +7,15 @@ TI_GDT equ 0
 RPL0 equ 0
 SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
 
+[bits 32]
+section .text
 ; ============================================================
 ; Function put_char: Print a character from the stack at the cursor 
 ; ============================================================
 global put_char
 put_char:
 ;------------------------
+; backup registers
 ; push all double word register (such as eax,ecx,...)
 ;------------------------
 pushad
@@ -156,14 +159,42 @@ out dx, al
 popad
 ret
 
+; ============================================================
+; Function put_str: Print string at the cursor 
+; ============================================================
+global put_str
+put_str:
+;------------------------
+; backup registers
+;------------------------
+push ebx
+push ecx
 
+;------------------------
+; , prepare the parameters (the starting address of the string) here
+;------------------------
+xor ecx, ecx 
+; 8 bytes of the backup register + 4 bytes of caller return address
+mov ebx, [esp+12]
 
+;------------------------
+; Implement the function by calling put_char
+;------------------------
+.impl:
+mov cl, [ebx]
 
+; Determine whether the string ends
+cmp cl, 0
+jz .str_over
 
+push ecx
+call put_char
+add esp, 4
+inc ebx
+loop .impl
 
-
-
-
-
-
+.str_over:
+pop ecx 
+pop ebx
+ret 
 
