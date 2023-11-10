@@ -2,16 +2,19 @@
 ; Author: Xun Morris |
 ; Time: 2023-11-09 |
 ;------------------------
+[bits 32]
+section .data
+put_int_buffer dq 0
+
+section .text
+; ============================================================
+; Function put_char: Print a character from the stack at the cursor 
+; ============================================================
 ; video selector attribute
 TI_GDT equ 0
 RPL0 equ 0
 SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
 
-[bits 32]
-section .text
-; ============================================================
-; Function put_char: Print a character from the stack at the cursor 
-; ============================================================
 global put_char
 put_char:
 ;------------------------
@@ -197,4 +200,95 @@ loop .impl
 pop ecx 
 pop ebx
 ret 
+
+; ============================================================
+; Function put_int: Print integer at the cursor 
+; Implement: Convert every 4 digits of a 32-bit number (i.e. a hexadecimal number) into corresponding characters
+; eg: 0x0012345 --> '0x12345'
+; ============================================================
+;------------------------
+; put_int_buffer serves as a buffer to store the converted results.
+;------------------------
+global put_int
+put_int:
+pushad
+mov ebp, esp
+
+;jmp $
+; the number to be printed stored in register eax
+; 32 bytes of register + 4 bytes of caller return address
+mov eax, [ebp+36]
+mov edx, eax
+
+; edi point to the last byte in buffer
+; ecx represents the number of numbers to be processed
+mov edi, 7
+mov ecx, 8
+; ebx represents the base address of the buffer (32bits/4bits = 8)
+mov ebx, put_int_buffer
+
+;------------------------
+; Convert characters (each 4-bits in 32-bits number) to corresponding ASCII value
+;------------------------
+.to_char_each_4_bits:
+and edx, 0x0000000F
+cmp edx, 9
+jg .is_A2F
+add edx, '0'
+jmp .store
+.is_A2F:
+sub edx, 10
+add edx, 'A'
+
+;------------------------
+; remove prefix 0
+; eg: 0x00000012 ---> 0x12
+;------------------------
+.store:
+mov [ebx+edi], dl
+dec edi
+shr eax, 4
+mov edx, eax
+loop .to_char_each_4_bits
+
+.ready_to_print:
+; -1 (0xffffffff) +1 = 0
+inc edi
+
+; while(num != 0) {}
+.skip_prefix_0:
+; If 0 (4-bits), then check whether the number to be printed is 0 ( 32-bits )
+cmp edi, 8
+je .num_is_0
+
+.detect_prefix_0:
+mov cl, [put_int_buffer+edi]
+inc edi
+cmp cl, '0'
+je  .skip_prefix_0
+dec edi
+jmp .put_each_num
+
+.num_is_0:
+; the number to be printed is zero
+mov cl, '0'
+
+;------------------------
+; print characters in buffer
+;------------------------
+.put_each_num:
+push ecx
+call put_char
+add esp, 4
+inc edi
+mov cl, [put_int_buffer+edi]
+cmp edi, 8
+jl .put_each_num
+popad
+ret
+
+
+
+
+
 
