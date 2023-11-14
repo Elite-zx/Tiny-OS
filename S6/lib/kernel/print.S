@@ -8,7 +8,7 @@ put_int_buffer dq 0
 
 section .text
 ; ============================================================
-; Function put_char: Print a character from the stack at the cursor 
+; Function put_char: Print a character from the stack at the cursor
 ; ============================================================
 ; video selector attribute
 TI_GDT equ 0
@@ -27,7 +27,7 @@ pushad
 ; set video memory selector
 ;------------------------
 mov ax, SELECTOR_VIDEO
-mov gs, ax 
+mov gs, ax
 
 ;------------------------
 ; get the cursor position (16 bits) from the graphics card's register
@@ -55,7 +55,7 @@ mov bx, ax
 ;------------------------
 ; 32 bytes of register space + 4 bytes of caller return address
 mov ecx, [esp+36]
- 
+
 ;------------------------
 ; Process the characters to be printed --- do special processing for control characters, and print ordinary visible characters. If the visible characters exceed the screen (cmp bx, 2000), add a carriage return processing operation
 ;------------------------
@@ -74,7 +74,7 @@ dec bx
 shl bx, 1
 
 mov byte [gs:bx], 0x20
-inc bx 
+inc bx
 mov byte [gs:bx], 0x07
 ; restore the bx value (the position of cursor)
 ; bx: the position in the video memory ---> the cursor position
@@ -94,7 +94,7 @@ jl .set_cursor
 ; \n --- moves the cursor to the beginning of the next line
 .is_line_feed:
 ; \r --- moves the cursor to the beginning of the same line
-; actually I treat \r like \n 
+; actually I treat \r like \n
 .is_carriage_return:
 ; 16-bit division
 xor dx, dx
@@ -105,7 +105,7 @@ div si
 sub bx, dx
 ; let bx (cursor) be the first coordinate of the next line (line feed done!)
 add bx, 80
-; if the cursor exceeds the screen (the result of instruction jl will be false), scroll the srceen 
+; if the cursor exceeds the screen (the result of instruction jl will be false), scroll the srceen
 cmp bx, 2000
 jl .set_cursor
 
@@ -118,10 +118,11 @@ jl .set_cursor
 ;------------------------
 .roll_screen:
 ; Cover lines 0~23 with lines 1~24
-cld 
+cld
 ; ((2000-80)*2)/4=960
 mov ecx, 960
-mov esi, 0xc00b80a0
+mov esi, 0xc00b80a0 ; beginning of line 0
+mov edi, 0xc00b8000 ; beginning of line 1
 ; mov 4 bytes (double word) each time
 rep movsd
 
@@ -163,7 +164,7 @@ popad
 ret
 
 ; ============================================================
-; Function put_str: Print string at the cursor 
+; Function put_str: Print string at the cursor
 ; ============================================================
 global put_str
 put_str:
@@ -176,7 +177,7 @@ push ecx
 ;------------------------
 ; , prepare the parameters (the starting address of the string) here
 ;------------------------
-xor ecx, ecx 
+xor ecx, ecx
 ; 8 bytes of the backup register + 4 bytes of caller return address
 mov ebx, [esp+12]
 
@@ -197,12 +198,12 @@ inc ebx
 loop .impl
 
 .str_over:
-pop ecx 
+pop ecx
 pop ebx
-ret 
+ret
 
 ; ============================================================
-; Function put_int: Print integer at the cursor 
+; Function put_int: Print integer at the cursor
 ; Implement: Convert every 4 digits of a 32-bit number (i.e. a hexadecimal number) into corresponding characters
 ; eg: 0x0012345 --> '0x12345'
 ; ============================================================

@@ -6,6 +6,12 @@
 
 int main() {
   put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
+  put_str("I am kernel!\n");
   put_int(2);
   put_char('\n');
   put_int(0x0000);

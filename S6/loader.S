@@ -6,7 +6,7 @@
 %include "boot.inc"
 SECTION LOADER vstart=LOADER_BASE_ADDR
 ; The stack segment and data segment share the same memory
-LOADER_STACK_TOP equ LOADER_BASE_ADDR 
+LOADER_STACK_TOP equ LOADER_BASE_ADDR
 
 ; ============================================================
 ; build GDT by filling entries (in data segment)
@@ -30,7 +30,7 @@ dd DESC_DISPLAY_HIGH4
 
 ; Macro in assembly do not take up memory space
 ; get size of gdt,
-GDT_SIZE equ $-GDT_BASE 
+GDT_SIZE equ $-GDT_BASE
 
 ;------------------------
 ; set selector
@@ -54,9 +54,9 @@ dd 0
 ; set GDTR --> GDT address and size
 ;------------------------
 GDT_LIMIT equ GDT_SIZE-1
-gdt_ptr: 
-dw GDT_LIMIT 
-dd GDT_BASE 
+gdt_ptr:
+dw GDT_LIMIT
+dd GDT_BASE
 
 ;------------------------
 ; define ARDS: Address Range Descriptor Structure
@@ -70,7 +70,7 @@ dw 0
 ; LOADER_BASE_ADDR + 0x300 = 0xc00
 loader_start:
 ;------------------------
-; Subfunction 0xE820 of BIOS 0x15 interrupt 
+; Subfunction 0xE820 of BIOS 0x15 interrupt
 ;------------------------
 xor ebx, ebx
 mov edx, 0x534d4150
@@ -86,7 +86,7 @@ jc .E820_failed_so_try_E801
 
 add di, cx
 inc word [ARDS_num]
-cmp ebx, 0 
+cmp ebx, 0
 jnz .E820_mem_retrieve_loop
 
 ; Traverse the ARDS structure to find the largest memory area
@@ -108,7 +108,7 @@ loop .find_max_mem_area
 jmp .mem_retrieve_ok
 
 ;------------------------
-; Subfunction 0xE801 of BIOS 0x15 interrupt 
+; Subfunction 0xE801 of BIOS 0x15 interrupt
 ;------------------------
 .E820_failed_so_try_E801:
 mov ax, 0xe801
@@ -138,7 +138,7 @@ mov edx, esi
 jmp .mem_retrieve_ok
 
 ;------------------------
-; Subfunction 0x88 of BIOS 0x15 interrupt 
+; Subfunction 0x88 of BIOS 0x15 interrupt
 ;------------------------
 .E801_failed_so_try_88:
 mov ah, 0x88
@@ -156,7 +156,7 @@ add edx, 0x100000
 
 ; halt CPU until the next external interrupt is fired (happened)
 .error_hlt:
-hlt 
+hlt
 
 .mem_retrieve_ok:
 mov [total_mem_bytes], edx
@@ -217,7 +217,7 @@ call setup_page
 ; Modify the segment base address in the segment descriptor of the video(display) memory segment (now a virtual address)
 ; sgdt puts the contents of GDTR into the memory at the specified address
 sgdt [gdt_ptr]
-; gdt_ptr + 2 is the address of GDT 
+; gdt_ptr + 2 is the address of GDT
 mov ebx, [gdt_ptr+2]
 ; ebx+0x18+4 is the upper 4 bytes of the third segment descriptor (video memory segment descriptor)
 ; The OR operation with 0xc0000000 is to modify the highest byte of this segment descriptor and map the video memory segment to the upper 1GB (which is kernel space) of 4GB.
@@ -253,7 +253,7 @@ mov esp, 0xc009f000
 
 mov byte [gs:160], 'K'
 
-jmp KERNEL_ENTRY_POINT 
+jmp KERNEL_ENTRY_POINT
 
 
 ; ============================================================
@@ -274,7 +274,7 @@ loop .clear_PDT
 .create_PDE:
 mov eax, PAGE_DIR_TABLE_POS
 ; The PDT starts from 0x10000, which itself occupies 0x1000. So the first page table is at address 0x101000
-add eax, 0x1000 
+add eax, 0x1000
 mov ebx, eax
 or eax, PG_US_U | PG_RW_W | PG_P
 ; create the first PDE
@@ -380,7 +380,7 @@ out dx, al
 ;---------------------------------------------
 .not_ready:
 nop
-; read from the same port: 0x1f7 -- Status reg 
+; read from the same port: 0x1f7 -- Status reg
 in al, dx
 ; check the third bit in Status reg
 and al, 0x88
@@ -402,10 +402,10 @@ in ax, dx
 mov [ebx], ax
 add ebx, 2
 loop .go_on_read
-ret 
+ret
 
 ; ============================================================
-; Parse kernel ELF file 
+; Parse kernel ELF file
 ; ============================================================
 kernel_init:
 xor eax, eax
@@ -416,7 +416,7 @@ xor edx, edx
 ;---------------------------------------------
 ; extract program header info from ELF file header
 ;---------------------------------------------
-; e_phentsize (2 bytes) -> size of program header entry 
+; e_phentsize (2 bytes) -> size of program header entry
 mov dx, [KERNEL_BIN_BASE_ADDR + 42]
 ; e_phoff (4 bytes) -> start of program header table
 mov ebx, [KERNEL_BIN_BASE_ADDR + 28]
@@ -455,7 +455,7 @@ ret
 ; Function like memcpy(void*dest,const void* src, size_t n)
 ;---------------------------------------------
 mem_cpy:
-; set direction flag bit to 0, 
+; set direction flag bit to 0,
 ; this means that the transfer direction is towards high address
 cld
 push ebp
