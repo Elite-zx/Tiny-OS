@@ -45,6 +45,7 @@ static struct gate_desc idt[IDT_DESC_COUNT];
 
 char *intr_name[IDT_DESC_COUNT];
 
+/* Interrupt handler address table  */
 intr_handler idt_table[IDT_DESC_COUNT];
 
 extern intr_handler intr_entry_table[IDT_DESC_COUNT];
@@ -106,6 +107,12 @@ static void idt_desc_init() {
   put_str("  idt_desc_init done\n");
 }
 
+/**
+ * general_intr_handler - print the interrupt vector number
+ * @vec_nr: vector number to be printed
+ *
+ * This function is default interrupt handler for all interrupts.
+ */
 static void general_intr_handler(uint8_t vec_nr) {
   if (vec_nr == 0x27 || vec_nr == 0x2f)
     return;
@@ -115,6 +122,12 @@ static void general_intr_handler(uint8_t vec_nr) {
   put_char('\n');
 }
 
+/**
+ * exception_init - initialize idt-table
+ *
+ * This function sets the default interrupt handler function for all interrupts
+ * to general_intr_handler.
+ */
 static void exception_init() {
   int i;
   for (i = 0; i < IDT_DESC_COUNT; ++i) {
