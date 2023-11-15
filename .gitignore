@@ -1,4 +1,6 @@
 *.o
 *.bin
 *.elf
+*.swap
+build
 
