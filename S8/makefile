@@ -1,3 +1,8 @@
+##################
+# Author: Xun Morris
+# Time: 2023-11-15
+##################
+
 BUILD_DIR =./build
 ENTRY_POINT= 0xc0001500
 AS = nasm
