@@ -7,6 +7,7 @@
 #include "../device/timer.h"
 #include "interrupt.h"
 #include "print.h"
+#include "memory.h"
 
 /**
  * initialize all modules
@@ -16,4 +17,5 @@ void init_all() {
   /* initialize interrupt module  */
   idt_init();
   timer_init();
+  mem_init();
 }

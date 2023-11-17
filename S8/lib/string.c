@@ -6,8 +6,6 @@
 #include "string.h"
 #include "debug.h"
 #include "global.h"
-#include <cstdint>
-#include <string.h>
 
 /**
  * memset - set size bytes starting from dst to value
@@ -77,7 +75,7 @@ int memcmp(const void *a, const void *b, unsigned long size) {
 char *strcpy(char *dst, const char *src) {
   ASSERT(dst != NULL && src != NULL);
   char *ret = dst;
-  while (*dst++ = *src++)
+  while ((*dst++ = *src++))
     ;
   return ret;
 }
@@ -185,7 +183,7 @@ char *strrchr(const char *str, int ch) {
  * to by src.
  */
 uint32_t strchrs(const char *src, uint8_t ch) {
-  ASSERT(str != NULL);
+  ASSERT(src != NULL);
   int32_t ch_cnt = 0;
   const char *p = src;
   while (*p != 0) {
