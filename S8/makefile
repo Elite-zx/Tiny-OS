@@ -1,6 +1,6 @@
 ##################
 # Author: Xun Morris
-# Time: 2023-11-15
+# Time: 2023-11-18
 ##################
 
 BUILD_DIR =./build
@@ -48,7 +48,8 @@ $(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h lib/stdint.h \
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/memory.o: kernel/memory.c kernel/memory.o lib/stdint.h \
-	lib/kernel/bitmap.h lib/kernel/print.h
+	lib/kernel/bitmap.h lib/kernel/print.h kernel/global.h  kernel/debug.h \
+	lib/string.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## assemble assembly ##################
