@@ -6,7 +6,7 @@
 %include "boot.inc"
 SECTION LOADER vstart=LOADER_BASE_ADDR
 ; The stack segment and data segment share the same memory
-LOADER_STACK_TOP equ LOADER_BASE_ADDR 
+LOADER_STACK_TOP equ LOADER_BASE_ADDR
 
 ;------------------------
 ; build GDT by filling entries (in data segment)
@@ -29,7 +29,7 @@ dd DESC_DISPLAY_HIGH4
 
 ; Macro in assembly do not take up memory space
 ; get size of gdt,
-GDT_SIZE equ $-GDT_BASE 
+GDT_SIZE equ $-GDT_BASE
 
 ;------------------------
 ; set selector
@@ -53,9 +53,9 @@ dd 0
 ; set GDTR --> GDT address and size
 ;------------------------
 GDT_LIMIT equ GDT_SIZE-1
-gdt_ptr: 
-dw GDT_LIMIT 
-dd GDT_BASE 
+gdt_ptr:
+dw GDT_LIMIT
+dd GDT_BASE
 
 ;------------------------
 ; define ARDS: Address Range Descriptor Structure
@@ -69,7 +69,7 @@ dw 0
 ; LOADER_BASE_ADDR + 0x300
 loader_start:
 ;------------------------
-; Subfunction 0xE820 of BIOS 0x15 interrupt 
+; Subfunction 0xE820 of BIOS 0x15 interrupt
 ;------------------------
 xor ebx, ebx
 mov edx, 0x534d4150
@@ -85,7 +85,7 @@ jc .E820_failed_so_try_E801
 
 add di, cx
 inc word [ARDS_num]
-cmp ebx, 0 
+cmp ebx, 0
 jnz .E820_mem_retrieve_loop
 
 ; Traverse the ARDS structure to find the largest memory area
@@ -107,7 +107,7 @@ loop .find_max_mem_area
 jmp .mem_retrieve_ok
 
 ;------------------------
-; Subfunction 0xE801 of BIOS 0x15 interrupt 
+; Subfunction 0xE801 of BIOS 0x15 interrupt
 ;------------------------
 .E820_failed_so_try_E801:
 mov ax, 0xe801
@@ -137,7 +137,7 @@ mov edx, esi
 jmp .mem_retrieve_ok
 
 ;------------------------
-; Subfunction 0x88 of BIOS 0x15 interrupt 
+; Subfunction 0x88 of BIOS 0x15 interrupt
 ;------------------------
 .E801_failed_so_try_88:
 mov ah, 0x88
@@ -155,7 +155,7 @@ add edx, 0x100000
 
 ; halt CPU until the next external interrupt is fired (happened)
 .error_hlt:
-hlt 
+hlt
 
 .mem_retrieve_ok:
 mov [total_mem_bytes], edx
@@ -178,15 +178,15 @@ or eax, 0x00000001
 mov cr0, eax
 
 ; refresh CPU pipeline-> 16bits to 32bits
-jmp dword SELECTOR_CODE:real_mode_start
+jmp dword SELECTOR_CODE:protected_mode_start
 
 
 ;------------------------
-; Now CPU enter real mode,
+; Now CPU enter protected mode,
 ; I (the OS maker --- Mr.Morris) am about to start making great achievements.
 ;------------------------
 [bits 32]
-real_mode_start:
+protected_mode_start:
 mov ax, SELECTOR_DATA
 mov ds, ax
 mov es, ax
@@ -206,7 +206,7 @@ call setup_page
 ; Modify the segment base address in the segment descriptor of the video(display) memory segment (now a virtual address)
 ; sgdt puts the contents of GDTR into the memory at the specified address
 sgdt [gdt_ptr]
-; gdt_ptr + 2 is the address of GDT 
+; gdt_ptr + 2 is the address of GDT
 mov ebx, [gdt_ptr+2]
 ; ebx+0x18+4 is the upper 4 bytes of the third segment descriptor (video memory segment descriptor)
 ; The OR operation with 0xc0000000 is to modify the highest byte of this segment descriptor and map the video memory segment to the upper 1GB (which is kernel space) of 4GB.
@@ -249,7 +249,7 @@ loop .clear_PDT
 .create_PDE:
 mov eax, PAGE_DIR_TABLE_POS
 ; The PDT starts from 0x10000, which itself occupies 0x1000. So the first page table is at address 0x101000
-add eax, 0x1000 
+add eax, 0x1000
 mov ebx, eax
 or eax, PG_US_U | PG_RW_W | PG_P
 ; create the first PDE

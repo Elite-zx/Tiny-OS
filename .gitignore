@@ -3,4 +3,5 @@
 *.elf
 *.swap
 build
-
+compile_commands.json
+.cache

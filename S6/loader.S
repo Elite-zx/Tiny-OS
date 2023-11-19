@@ -179,15 +179,15 @@ or eax, 0x00000001
 mov cr0, eax
 
 ; refresh CPU pipeline-> 16bits to 32bits
-jmp dword SELECTOR_CODE:real_mode_start
+jmp dword SELECTOR_CODE:protected_mode_start
 
 
 ;------------------------
-; Now CPU enter real mode,
+; Now CPU enter protected mode,
 ; I (The OS maker --- Mr.Morris) am about to start making great achievements.
 ;------------------------
 [bits 32]
-real_mode_start:
+protected_mode_start:
 mov ax, SELECTOR_DATA
 mov ds, ax
 mov es, ax
@@ -254,7 +254,6 @@ mov esp, 0xc009f000
 mov byte [gs:160], 'K'
 
 jmp KERNEL_ENTRY_POINT
-
 
 ; ============================================================
 ; Function: Create page directory table and page table

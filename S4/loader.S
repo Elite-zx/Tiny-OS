@@ -6,7 +6,7 @@
 %include "boot.inc"
 SECTION LOADER vstart=LOADER_BASE_ADDR
 ; The stack segment and data segment share the same memory
-LOADER_STACK_TOP equ LOADER_BASE_ADDR 
+LOADER_STACK_TOP equ LOADER_BASE_ADDR
 jmp loader_start
 
 ;------------------------
@@ -29,7 +29,7 @@ dd 0x80000007
 dd DESC_DISPLAY_HIGH4
 
 ; get size of gdt
-GDT_SIZE equ $-GDT_BASE 
+GDT_SIZE equ $-GDT_BASE
 
 ; Reserve space for other segment descriptors
 times 60 dq 0
@@ -38,9 +38,9 @@ times 60 dq 0
 ; set GDTR --> GDT address and size
 ;------------------------
 GDT_LIMIT equ GDT_SIZE-1
-gdt_ptr: 
-dw GDT_LIMIT 
-dd GDT_BASE 
+gdt_ptr:
+dw GDT_LIMIT
+dd GDT_BASE
 
 ;------------------------
 ; set selector
@@ -49,7 +49,7 @@ SELECTOR_CODE  equ ((CODE_DESC-GDT_BASE)/8) << 3 + TI_GDT + RPL0
 SELECTOR_DATA  equ ((DATA_STACK_DESC-GDT_BASE)/8) << 3 + TI_GDT + RPL0
 SELECTOR_DISPLAY  equ ((DISPLAY_DESC-GDT_BASE)/8) << 3 + TI_GDT + RPL0
 
-loadermsg db "2 loader in real mode." 
+loadermsg db "2 loader in real mode."
 
 loader_start:
 ;------------------------
@@ -81,10 +81,10 @@ or eax, 0x00000001
 mov cr0, eax
 
 ; refresh CPU pipeline-> 16bits to 32bits
-jmp dword SELECTOR_CODE:real_mode_start
+jmp dword SELECTOR_CODE:protected_mode_start
 
 [bits 32]
-real_mode_start:
+protected_mode_start:
 mov ax, SELECTOR_DATA
 mov ds, ax
 mov es, ax
