@@ -179,8 +179,8 @@ uint32_t *pte_ptr(uint32_t vaddr) {
  * entry of the page directory to access the directory itself, enabling the
  * determination of the virtual address that can be used to access the correct
  * PDE. The calculation is done by starting from a fixed high memory location
- * (0xfffff000) and applying an offset based on the `vaddr` to reach the
- * specific PDE.
+ * (0xfffff000) which represents the starting address of PDE and applying an
+ * offset based on the `vaddr` to reach the specific PDE.
  *
  * Return: The virtual address of the page directory entry corresponding to the
  * given virtual address.
