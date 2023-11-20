@@ -1,3 +1,7 @@
+/*
+ * Author: Xun Morris
+ * Time: 2023-11-19
+ */
 #ifndef __THREAD_THREAD_H
 #define __THREAD_THREAD_H
 #include "stdint.h"

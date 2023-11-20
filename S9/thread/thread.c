@@ -1,3 +1,7 @@
+/*
+ * Author: Xun Morris
+ * Time: 2023-11-19
+ */
 #include "thread.h"
 #include "global.h"
 #include "memory.h"
