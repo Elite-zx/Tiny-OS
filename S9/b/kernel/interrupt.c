@@ -116,6 +116,7 @@ static void idt_desc_init() {
  * This function is default interrupt handler for all interrupts.
  */
 static void general_intr_handler(uint8_t vec_nr) {
+  /* ignore spurious(fake) interrupt */
   if (vec_nr == 0x27 || vec_nr == 0x2f)
     return;
 

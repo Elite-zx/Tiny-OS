@@ -16,7 +16,7 @@ void kthread_b(void *arg);
 int main() {
   put_str("I am kernel\n");
   init_all();
-  thread_start("kthread_a", 32, kthread_a, "argA ");
+  thread_start("kthread_a", 31, kthread_a, "argA ");
   thread_start("kthread_b", 8, kthread_b, "argB ");
   intr_enable();
   while (1) {

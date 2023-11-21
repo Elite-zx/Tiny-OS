@@ -1,3 +1,8 @@
+;------------------------
+; Author: Xun Morris |
+; Time: 2023-11-21 |
+;------------------------
+
 [bits 32]
 section .text
 global switch_to
@@ -15,6 +20,7 @@ mov [eax], esp
 ; retrieve the PCB address of next thread from parameter 'next'
 mov eax,[esp+24]
 mov esp, [eax]
+
 pop ebp
 pop ebx
 pop edi

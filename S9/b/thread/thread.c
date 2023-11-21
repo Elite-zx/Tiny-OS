@@ -69,6 +69,7 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
     thread->status = TASK_READY;
   }
   /* Let the stack pointer point to the high address */
+
   thread->self_kstack = (uint32_t *)((uint32_t)thread + PG_SIZE);
   thread->priority = _priority;
   /* the larger priority is, the longer time slice is */
@@ -78,6 +79,7 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
   thread->stack_magic = 0x20011124;
 }
 
+/* create a thread  */
 struct task_struct *thread_start(char *name, int _priority,
                                  thread_func function, void *func_arg) {
   struct task_struct *thread = get_kernel_pages(1);
@@ -94,7 +96,7 @@ struct task_struct *thread_start(char *name, int _priority,
 
 static void make_main_thread() {
   main_thread = running_thread();
-  init_thread(main_thread, "main", 36);
+  init_thread(main_thread, "main", 31);
 
   ASSERT(!list_elem_find(&thread_all_list, &main_thread->all_list_tag));
   list_append(&thread_all_list, &main_thread->all_list_tag);
