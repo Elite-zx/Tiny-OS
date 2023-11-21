@@ -1,6 +1,6 @@
 ;------------------------
 ; Author: Xun Morris |
-; Time: 2023-11-14 |
+; Time: 2023-11-21 |
 ;------------------------
 
 ; ============================================================
@@ -34,7 +34,7 @@ intr_%1_entry:
 ; see P.323 for details
 %2
 
-; The C function is about to be called
+; The C function (real interrupt handler) is about to be called
 ; so the current register environment needs to be protect
 push ds
 push es
@@ -50,6 +50,7 @@ out 0x20,al
 ; For debugging, %1 is vector number
 push %1
 
+; call real interrupt handler
 call [idt_table + %1*4]
 jmp intr_exit
 
@@ -62,6 +63,7 @@ dd intr_%1_entry
 section .text
 global intr_exit
 intr_exit:
+; skip interrupt vector number
 add esp,4
 popad
 pop gs
@@ -69,6 +71,7 @@ pop fs
 pop es
 pop ds
 
+; skip error_code
 add esp,4
 iretd
 

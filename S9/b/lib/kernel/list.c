@@ -1,6 +1,5 @@
 #include "list.h"
 #include "interrupt.h"
-#include <stdint.h>
 
 /**
  * plist_init - Initializes a new list.
@@ -8,7 +7,7 @@
  *
  * Sets up the head and tail elements of the list.
  */
-void plist_init(struct list *plist) {
+void list_init(struct list *plist) {
   plist->head.prev = NULL;
   plist->head.next = &plist->tail;
   plist->tail.next = NULL;

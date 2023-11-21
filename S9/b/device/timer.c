@@ -5,10 +5,10 @@
 
 #include "timer.h"
 #include "debug.h"
+#include "interrupt.h"
 #include "io.h"
 #include "print.h"
 #include "thread.h"
-#include <stdint.h>
 
 #define IRQ0_FREQUENCY 100
 #define INPUT_FREQUENCY 1193180
@@ -20,6 +20,7 @@
 #define READ_WRITE_LATCH 3
 #define PIT_CONTROL_PORT 0x43
 
+/* the total number of ticks since the interrupt was enabled  */
 uint32_t ticks;
 
 /**
@@ -52,6 +53,7 @@ static void intr_time_handler() {
   ++ticks;
 
   if (cur_thread->ticks == 0) {
+    /* time slice of current thread is over */
     schedule();
   } else {
     --cur_thread->ticks;
@@ -63,6 +65,7 @@ static void intr_time_handler() {
  *
  * This function encapsulate function frequency_set. Therefore, the external
  * function can easily call timer_init to complete the Initialization of timer.
+ * Moreover, this function re-registers the clock interrupt handler function.
  */
 void timer_init() {
   put_str("timer_init start\n");

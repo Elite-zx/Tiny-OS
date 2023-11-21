@@ -126,7 +126,7 @@ static void general_intr_handler(uint8_t vec_nr) {
     ++cursor_pos;
   }
   set_cursor(0);
-  put_str("!!!!!!      exception message begin      !!!!!!");
+  put_str("!!!!!!      exception message begin      !!!!!!\n");
   set_cursor(88);
   put_str(intr_name[vec_nr]);
   if (vec_nr == 14) {
@@ -135,7 +135,7 @@ static void general_intr_handler(uint8_t vec_nr) {
     put_str("\npage fault addr is ");
     put_int(page_fault_vaddr);
   }
-  put_str("!!!!!!      exception message end      !!!!!!");
+  put_str("\n!!!!!!      exception message end      !!!!!!\n");
   while (1)
     ;
 }

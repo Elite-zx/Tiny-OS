@@ -288,8 +288,31 @@ jl .put_each_num
 popad
 ret
 
+global set_cursor
+set_cursor:
+pushad
+; 32 bytes of 8 registers and 4 bytes of return address
+mov bx, [esp+36]
+; set high 8 bits
+mov dx, 0x03d4
+mov al, 0x0e
+out dx, al
 
+mov dx, 0x03d5
+mov al, bh
+out dx, al
 
+; set low 8 bits
+mov dx, 0x03d4
+mov al, 0x0f
+out dx, al
+
+mov dx, 0x03d5
+mov al, bl
+out dx, al
+
+popad
+ret
 
 
 

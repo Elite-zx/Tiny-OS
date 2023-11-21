@@ -105,4 +105,7 @@ struct task_struct {
 
 struct task_struct *thread_start(char *name, int _priority,
                                  thread_func function, void *func_arg);
+void thread_init();
+struct task_struct *running_thread();
+void schedule();
 #endif

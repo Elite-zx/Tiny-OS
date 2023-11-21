@@ -1,9 +1,8 @@
 #ifndef __LIB_KERNEL_LIST_H
 #define __LIB_KERNEL_LIST_H
 #include "global.h"
-#include "thread.h"
 
-#define offset(struct_type, member) (int)(&((struct_type *)0)->member);
+#define offset(struct_type, member) (int)(&((struct_type *)0)->member)
 #define elem2entry(struct_type, struct_member_name, elem_ptr)                  \
   (struct_type *)((int)elem_ptr - offset(struct_type, struct_member_name))
 
@@ -19,7 +18,7 @@ struct list {
 
 typedef bool(function)(struct list_elem *, int arg);
 
-void plist_init(struct list *plist);
+void list_init(struct list *plist);
 void list_insert_before(struct list_elem *posn, struct list_elem *elem);
 void list_push(struct list *plist, struct list_elem *elem);
 void list_append(struct list *plist, struct list_elem *elem);

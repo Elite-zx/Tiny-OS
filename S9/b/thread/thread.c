@@ -8,8 +8,10 @@
 #include "interrupt.h"
 #include "list.h"
 #include "memory.h"
+#include "print.h"
 #include "stdint.h"
 #include "string.h"
+#include "switch.h"
 
 #define PG_SIZE 1024
 
@@ -17,12 +19,14 @@ struct task_struct *main_thread;
 struct list thread_ready_list;
 struct list thread_all_list;
 
+/* Get the PCB of the current thread  */
 struct task_struct *running_thread() {
   uint32_t esp;
   asm volatile("mov %%esp,%0" : "=g"(esp));
   return (struct task_struct *)(esp & 0xfffff000);
 }
 
+/* turn off interrupt, execute function(func_arg)  */
 static void kernel_thread(thread_func *function, void *func_arg) {
   intr_enable();
   function(func_arg);
@@ -54,18 +58,23 @@ void thread_create(struct task_struct *thread, thread_func function,
 }
 
 void init_thread(struct task_struct *thread, char *name, int _priority) {
+  /* clear pcb to 0  */
   memset(thread, 0, sizeof(*thread));
   strcpy(thread->name, name);
   if (thread == main_thread) {
+    /* The main thread is already running. The main thread is initialized here
+     * to make up a PCB for it. */
     thread->status = TASK_RUNNING;
   } else {
     thread->status = TASK_READY;
   }
+  /* Let the stack pointer point to the high address */
   thread->self_kstack = (uint32_t *)((uint32_t)thread + PG_SIZE);
   thread->priority = _priority;
+  /* the larger priority is, the longer time slice is */
   thread->ticks = _priority;
-  pthread->elapsed_ticks = 0;
-  pthread->pg_dir = NULL;
+  thread->elapsed_ticks = 0;
+  thread->pg_dir = NULL;
   thread->stack_magic = 0x20011124;
 }
 
@@ -95,7 +104,11 @@ void schedule() {
   ASSERT(intr_get_status() == INTR_OFF);
   struct task_struct *cur_thread = running_thread();
   if (cur_thread->status == TASK_RUNNING) {
+    /* the time slice for current thread is used up  */
+
+    /* make sure cur_thread is not in thread_ready_list  */
     ASSERT(!list_elem_find(&thread_ready_list, &cur_thread->general_tag));
+
     list_append(&thread_ready_list, &cur_thread->general_tag);
     cur_thread->ticks = cur_thread->priority;
     cur_thread->status = TASK_READY;
@@ -110,4 +123,12 @@ void schedule() {
       elem2entry(struct task_struct, general_tag, thread_tag);
   next->status = TASK_RUNNING;
   switch_to(cur_thread, next);
+}
+
+void thread_init() {
+  put_str("thread_init start\n");
+  list_init(&thread_ready_list);
+  list_init(&thread_all_list);
+  make_main_thread();
+  put_str("thread_init done\n");
 }

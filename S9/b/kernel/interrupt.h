@@ -21,5 +21,6 @@ enum intr_status intr_get_status();
 enum intr_status intr_set_status(enum intr_status status);
 enum intr_status intr_enable();
 enum intr_status intr_disable();
+void register_handler(uint8_t vec_nr, intr_handler function) ;
 
 #endif
