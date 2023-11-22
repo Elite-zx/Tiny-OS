@@ -4,12 +4,13 @@
  */
 
 #include "init.h"
-#include "../device/timer.h"
 #include "console.h"
 #include "interrupt.h"
+#include "keyboard.h"
 #include "memory.h"
 #include "print.h"
 #include "thread.h"
+#include "timer.h"
 
 /**
  * initialize all modules
@@ -21,4 +22,5 @@ void init_all() {
   thread_init();
   timer_init();
   console_init();
+  keyboard_init();
 }

@@ -1,6 +1,6 @@
 /*
  * Author: Xun Morris
- * Time: 2023-11-20
+ * Time: 2023-11-22
  */
 
 #include "interrupt.h"
@@ -15,8 +15,8 @@
 #define PIC_S_CTRL 0xa0
 #define PIC_S_DATA 0xa1
 
-/* Interrupt Descriptor Count.*/
-#define IDT_DESC_COUNT 0x21
+/* Total number of interrupt descriptors.*/
+#define IDT_DESC_COUNT 0x30
 
 #define EFLAGS_IF 0x00000200
 #define GET_EFLAGS(EFLAGS_VAR) asm volatile("pushfl;popl %0" : "=g"(EFLAGS_VAR))
@@ -71,7 +71,7 @@ static void pic_init() {
   outb(PIC_S_DATA, 0x02); /* slave chip's ICW3 */
   outb(PIC_S_DATA, 0x01); /* slave chip's ICW4 */
 
-  outb(PIC_M_DATA, 0xfe); /* OCW1 (M/S)  --- Only enable clock interrupts. */
+  outb(PIC_M_DATA, 0xfd); /* OCW1 (M/S)  --- Only enable keyboard interrupts. */
   outb(PIC_S_DATA, 0xff);
 
   put_str("  pic_init done\n");
@@ -177,6 +177,8 @@ static void exception_init() {
   intr_name[17] = "#AC Alignment Check";
   intr_name[18] = "#MC Machine Check";
   intr_name[19] = "#XM SIMD Floating-Point Exception";
+  intr_name[20] = "Clock Interrupt";
+  intr_name[21] = "Keyboard Interrupt";
 }
 
 /*

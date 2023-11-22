@@ -17,12 +17,14 @@ void kthread_b(void *arg);
 int main() {
   put_str("I am kernel\n");
   init_all();
-  thread_start("kthread_a", 31, kthread_a, "argA ");
-  thread_start("kthread_b", 8, kthread_b, "argB ");
+  /** thread_start("kthread_a", 31, kthread_a, "argA "); */
+  /** thread_start("kthread_b", 8, kthread_b, "argB "); */
   intr_enable();
-  while (1) {
-    console_put_str("Main ");
-  };
+  /** while (1) { */
+  /**   console_put_str("Main "); */
+  /** }; */
+  while (1)
+    ;
   return 0;
 }
 

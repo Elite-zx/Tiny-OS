@@ -1,6 +1,6 @@
 ;------------------------
 ; Author: Xun Morris |
-; Time: 2023-11-21 |
+; Time: 2023-11-22 |
 ;------------------------
 
 ; ============================================================
@@ -113,4 +113,19 @@ VECTOR 0X1c, ZERO
 VECTOR 0X1d, ZERO
 VECTOR 0X1e, ERROR_CODE
 VECTOR 0X1f, ZERO
-VECTOR 0X20, ZERO
+VECTOR 0X20, ZERO ; IR0 --- clock interrupt
+VECTOR 0X21, ZERO ; IR1 --- keyboard interrupt
+VECTOR 0X22, ZERO
+VECTOR 0X23, ZERO
+VECTOR 0X24, ZERO
+VECTOR 0X25, ZERO
+VECTOR 0X26, ZERO
+VECTOR 0X27, ZERO
+VECTOR 0X28, ZERO
+VECTOR 0X29, ZERO
+VECTOR 0X2a, ZERO
+VECTOR 0X2b, ZERO
+VECTOR 0X2c, ZERO
+VECTOR 0X2d, ZERO
+VECTOR 0X2e, ZERO
+VECTOR 0X2f, ZERO
