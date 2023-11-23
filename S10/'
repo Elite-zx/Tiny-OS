@@ -145,11 +145,11 @@ static void intr_keyboard_handler(void) {
      state */
     uint16_t makecode = scancode & (0xffff ^ (0x01 << 7));
 
-    if (makecode == l_ctrl_makecode || makecode == r_ctrl_makecode)
+    if (makecode == left_ctrl || makecode == right_ctrl)
       ctrl_status = false;
-    if (makecode == l_shift_makecode || makecode == r_shift_makecode)
+    if (makecode == left_shift || makecode == right_shift)
       shift_status = false;
-    if (makecode == l_alt_makecode || makecode == r_alt_makecode)
+    if (makecode == left_alt || makecode == right_alt)
       alt_status = false;
     return;
   } else if (scancode < 0x3b || scancode == right_ctrl ||
