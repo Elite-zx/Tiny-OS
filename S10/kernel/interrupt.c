@@ -71,7 +71,7 @@ static void pic_init() {
   outb(PIC_S_DATA, 0x02); /* slave chip's ICW3 */
   outb(PIC_S_DATA, 0x01); /* slave chip's ICW4 */
 
-  outb(PIC_M_DATA, 0xfd); /* OCW1 (M/S)  --- Only enable keyboard interrupts. */
+  outb(PIC_M_DATA, 0xfc); /* OCW1 (M/S)  --- Only enable keyboard interrupts. */
   outb(PIC_S_DATA, 0xff);
 
   put_str("  pic_init done\n");

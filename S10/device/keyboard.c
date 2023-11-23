@@ -2,6 +2,7 @@
 #include "global.h"
 #include "interrupt.h"
 #include "io.h"
+#include "io_queue.h"
 #include "print.h"
 #include "stdint.h"
 
@@ -40,6 +41,7 @@
 
 static bool ctrl_status, shift_status, alt_status, caps_lock_status;
 static bool extend_scancode;
+struct ioqueue kbd_circular_buf;
 
 /**
  * keymap - Represents a keyboard keymap
@@ -184,7 +186,10 @@ static void intr_keyboard_handler(void) {
     /* If it is a visible character or a character such as backspace, then print
      */
     if (cur_char) {
-      put_char(cur_char);
+      if (!ioq_is_full(&kbd_circular_buf)) {
+        /** put_char(cur_char); */
+        ioq_putchar(&kbd_circular_buf, cur_char);
+      }
       return;
     }
 
@@ -205,6 +210,7 @@ static void intr_keyboard_handler(void) {
 
 void keyboard_init() {
   put_str("keyboard init start\n");
+  ioqueue_init(&kbd_circular_buf);
   register_handler(0x21, intr_keyboard_handler);
   put_str("keyboard init done\n");
 }
