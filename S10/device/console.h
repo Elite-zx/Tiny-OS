@@ -1,3 +1,7 @@
+/*
+ * Author: Xun Morris
+ * Time: 2023-11-23
+ */
 #ifndef __DEVICE_CONSOLE_H
 #define __DEVICE_CONSOLE_H
 #include "stdint.h"
