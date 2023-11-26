@@ -5,6 +5,7 @@
 #ifndef __THREAD_THREAD_H
 #define __THREAD_THREAD_H
 #include "list.h"
+#include "memory.h"
 #include "stdint.h"
 
 typedef void thread_func(void *);
@@ -100,6 +101,7 @@ struct task_struct {
 
   /* page table, NULL if it is TCB, */
   uint32_t *pg_dir;
+  struct virtual_addr userprog_vaddr;
   uint32_t stack_magic;
 };
 
@@ -110,4 +112,7 @@ struct task_struct *running_thread();
 void schedule();
 void thread_block(enum task_status stat);
 void thread_unblock(struct task_struct *pthread);
+void init_thread(struct task_struct *thread, char *name, int _priority);
+void thread_create(struct task_struct *thread, thread_func function,
+                   void *func_arg);
 #endif

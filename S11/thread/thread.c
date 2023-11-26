@@ -13,8 +13,6 @@
 #include "string.h"
 #include "switch.h"
 
-#define PG_SIZE 1024
-
 struct task_struct *main_thread;
 struct list thread_ready_list;
 struct list thread_all_list;
@@ -70,7 +68,7 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
   }
   /* Let the stack pointer point to the high address */
 
-  thread->self_kstack = (uint32_t *)((uint32_t)thread + PG_SIZE);
+  thread->self_kstack = (uint32_t *)((uint32_t)thread + PAGE_SIZE);
   thread->priority = _priority;
   /* the larger priority is, the longer time slice is */
   thread->ticks = _priority;

@@ -9,8 +9,6 @@
 #include "string.h"
 #include "thread.h"
 
-#define PG_SIZE 1024
-
 struct tss {
   uint32_t backlink;
   uint32_t *esp0;
@@ -42,7 +40,7 @@ struct tss {
 static struct tss tss;
 
 void update_tss_esp(struct task_struct *pthread) {
-  tss.esp0 = (uint32_t *)((uint32_t)pthread + PG_SIZE);
+  tss.esp0 = (uint32_t *)((uint32_t)pthread + PAGE_SIZE);
 }
 
 static struct gdt_desc make_gdt_desc(uint32_t *desc_addr, uint32_t limit,

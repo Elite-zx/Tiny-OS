@@ -8,8 +8,9 @@
 #include "global.h"
 #include "print.h"
 #include "string.h"
+#include "sync.h"
+#include "thread.h"
 
-#define PAGE_SIZE 4096
 #define MEM_BITMAP_BASE 0xc009a000
 #define KERNEL_HEAP_START 0xc0100000
 
@@ -23,14 +24,15 @@
  * @pool_size: The total size of the memory pool.
  *
  * This structure is used to manage a physical memory pool, either for the
- * kernel or user space. It includes a bitmap to efficiently track which pages
- * are free or allocated, as well as the starting address and total size of the
- * memory pool.
+ * kernel or user space. It includes a bitmap to efficiently track which
+ * pages are free or allocated, as well as the starting address and total
+ * size of the memory pool.
  */
 struct pool {
   struct bitmap pool_bitmap;
   uint32_t phy_addr_start;
   uint32_t pool_size;
+  struct lock _lock;
 };
 
 struct pool kernel_pool, user_pool;
@@ -55,6 +57,8 @@ struct virtual_addr kernel_vaddr;
  */
 static void mem_pool_init(uint32_t all_mem) {
   put_str("  mem_pool_init start\n");
+  lock_init(&kernel_pool._lock);
+  lock_init(&user_pool._lock);
 
   /* 1 PDT + 255 PTs = 4KB*256=1024KB=1MB (0x100000B) */
   uint32_t page_table_size = PAGE_SIZE * 256;
@@ -134,12 +138,23 @@ static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
     free_bit_idx_start = bitmap_scan(&kernel_vaddr.vaddr_bitmap, pg_cnt);
     if (free_bit_idx_start == -1)
       return NULL;
-    while (cnt < pg_cnt)
+    while (cnt < pg_cnt) {
       bitmap_set(&kernel_vaddr.vaddr_bitmap, free_bit_idx_start + cnt++, 1);
-
+    }
     vaddr_start = kernel_vaddr.vaddr_start + free_bit_idx_start * PAGE_SIZE;
   } else {
-    /* for user  */
+    /* for user process*/
+    struct task_struct *cur = running_thread();
+    free_bit_idx_start = bitmap_scan(&cur->userprog_vaddr.vaddr_bitmap, pg_cnt);
+    if (free_bit_idx_start == -1)
+      return NULL;
+    while (cnt < pg_cnt) {
+      bitmap_set(&cur->userprog_vaddr.vaddr_bitmap, free_bit_idx_start + cnt++,
+                 1);
+    }
+    vaddr_start =
+        cur->userprog_vaddr.vaddr_start + free_bit_idx_start * PAGE_SIZE;
+    ASSERT((uint32_t)vaddr_start < (0xc0000000 - PAGE_SIZE));
   }
   return (void *)vaddr_start;
 }
@@ -152,16 +167,14 @@ static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
  *
  * This function computes the virtual address of the page table entry (PTE)
  * corresponding to the provided virtual address (`vaddr`). It utilizes the last
- * entry in the page directory to access the page directory itself, thus
- * enabling the calculation of the virtual address that can be used to access
- * the appropriate PTE within the page table. This is achieved by offsetting
- * from a fixed high memory location (0xffc00000) and adjusting according to the
- * bits of the `vaddr` that are relevant for the PTE's location.
+ * entry in the page (The high 10 bits of vaddr should be 1 to access this PDE)
+ * directory to access the page directory itself, thus enabling the calculation
+ * of the virtual address that can be used to access the appropriate PTE within
+ * the page table.
  *
  * Return: The virtual address of the page table entry corresponding to the
  * given virtual address.
  */
-
 uint32_t *pte_ptr(uint32_t vaddr) {
   uint32_t *pte = (uint32_t *)(0xffc00000 + ((vaddr & 0xffc00000) >> 10) +
                                PTE_IDX(vaddr) * 4);
@@ -325,4 +338,79 @@ void *get_kernel_pages(uint32_t pg_cnt) {
   if (vaddr != NULL)
     memset(vaddr, 0, pg_cnt * PAGE_SIZE);
   return vaddr;
+}
+
+/**
+ * get_user_page - Allocates user space pages
+ * @pg_cnt: The number of 4K pages to allocate
+ * Return: Virtual address to the allocated user space memory
+ *
+ * Allocates 'pg_cnt' number of 4K pages in user space, initializes the
+ * allocated space to zero, and returns the virtual address to the allocated
+ * space. Ensures mutual exclusion during allocation by acquiring a lock on the
+ * user memory pool.
+ */
+void *get_user_page(uint32_t pg_cnt) {
+  lock_acquire(&user_pool._lock);
+  void *vaddr = malloc_page(PF_USER, pg_cnt);
+  if (vaddr != NULL)
+    memset(vaddr, 0, pg_cnt * PAGE_SIZE);
+  lock_release(&user_pool._lock);
+  return vaddr;
+}
+
+/**
+ * get_a_page - Maps a virtual address to a physical page
+ * @pf: Pool flag indicating whether the page is for user or kernel
+ * @vaddr: Virtual address to map to
+ * Return: Virtual address 'vaddr' on success, NULL on failure
+ *
+ * Maps a given virtual address 'vaddr' to a physical page from the specified
+ * pool 'pf' (user or kernel). The function first acquires a lock on the memory
+ * pool, calculates the bitmap index from the virtual address, sets the
+ * corresponding bit in the bitmap to indicate the page is used, allocates a
+ * physical page, and adds the mapping between the virtual address and the
+ * physical page. Releases the lock before returning. If the physical page
+ * allocation fails, returns NULL.
+ */
+void *get_a_page(enum pool_flags pf, uint32_t vaddr) {
+  struct pool *mem_pool = pf & PF_KERNEL ? &kernel_pool : &user_pool;
+  lock_acquire(&mem_pool->_lock);
+  struct task_struct *cur_thread = running_thread();
+  int32_t bit_idx = -1;
+
+  if (cur_thread->pg_dir != NULL && pf == PF_USER) {
+    bit_idx = (vaddr - cur_thread->userprog_vaddr.vaddr_start) / PAGE_SIZE;
+    ASSERT(bit_idx > 0);
+    bitmap_set(&cur_thread->userprog_vaddr.vaddr_bitmap, bit_idx, 1);
+  } else if (cur_thread->pg_dir == NULL && pf == PF_KERNEL) {
+    bit_idx = (vaddr - kernel_vaddr.vaddr_start) / PAGE_SIZE;
+    ASSERT(bit_idx > 0);
+    bitmap_set(&kernel_vaddr.vaddr_bitmap, bit_idx, 1);
+  } else {
+    PANIC("Unable to establish mapping between pf and vaddr");
+  }
+  void *page_phy_addr = palloc(mem_pool);
+  if (page_phy_addr == NULL)
+    return NULL;
+  page_table_add((void *)vaddr, page_phy_addr);
+  lock_release(&mem_pool->_lock);
+  return (void *)vaddr;
+}
+
+/**
+ * addr_v2p - Converts a virtual address to a physical address
+ * @vaddr: The virtual address to be converted
+ * Return: The corresponding physical address
+ *
+ * This function converts a given virtual address to its corresponding physical
+ * address using page table entries. It first locates the page table entry for
+ * the given virtual address and then extracts the physical address from it. The
+ * function combines the high 20 bits of the physical page frame address
+ * (extracted from the page table entry) with the low 12 bits of the original
+ * virtual address to form the complete physical address.
+ */
+uint32_t addr_v2p(uint32_t vaddr) {
+  uint32_t *pte_phy_addr = pte_ptr(vaddr);
+  return ((*pte_phy_addr & 0xfffff000) + (vaddr & 0x00000fff));
 }

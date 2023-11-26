@@ -39,5 +39,7 @@ enum pool_flags { PF_KERNEL = 1, PF_USER = 2 };
 extern struct pool kernel_pool, user_pool;
 void mem_init();
 void *get_kernel_pages(uint32_t pg_cnt);
+void *get_a_page(enum pool_flags pf, uint32_t vaddr);
+uint32_t addr_v2p(uint32_t vaddr);
 
 #endif
