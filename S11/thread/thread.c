@@ -9,6 +9,7 @@
 #include "list.h"
 #include "memory.h"
 #include "print.h"
+#include "process.h"
 #include "stdint.h"
 #include "string.h"
 #include "switch.h"
@@ -137,9 +138,11 @@ void schedule() {
   ASSERT(!list_empty(&thread_ready_list));
   struct list_elem *thread_tag;
   thread_tag = list_pop(&thread_ready_list);
+  /* get the starting address of pcb according to general_tag */
   struct task_struct *next =
       elem2entry(struct task_struct, general_tag, thread_tag);
   next->status = TASK_RUNNING;
+  process_activate(next);
   switch_to(cur_thread, next);
 }
 

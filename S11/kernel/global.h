@@ -2,7 +2,6 @@
  * Author: Xun Morris
  * Time: 2023-11-13
  */
-
 #ifndef __KERNEL_GLOBAL_H
 #define __KERNEL_GLOBAL_H
 #include "stdint.h"
@@ -115,7 +114,7 @@ struct gdt_desc {
 #define EFLAGS_IF_1 (1 << 9)
 
 #define EFLAGS_IOPL_3 (3 << 12)
-#define EFLAGS_IOPL_0 (3 << 12)
+#define EFLAGS_IOPL_0 (0 << 12)
 
 #define DIV_ROUND_UP(X, STEP) ((X + STEP - 1) / (STEP))
 #define PAGE_SIZE 4096

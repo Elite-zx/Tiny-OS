@@ -47,12 +47,17 @@ void start_process(void *_filename) {
   proc_stack->cs = SELECTOR_U_CODE;
   proc_stack->eip = function;
 
-  proc_stack->eflags = (EFLAGS_IF_1 & EFLAGS_IOPL_0 & EFLAGS_MBS);
+  proc_stack->eflags = (EFLAGS_IF_1 | EFLAGS_IOPL_0 | EFLAGS_MBS);
 
   proc_stack->ss = SELECTOR_U_DATA;
   /* Allocate stack with priority 3 for user process */
   proc_stack->esp =
       (void *)((uint32_t)get_a_page(PF_USER, USER_STACK3_VADDR) + PAGE_SIZE);
+
+  /* Jumping to the interrupt exit so that CPU can complete the transfer from
+   * high privilege level (os kernel) to low privilege level (user process)
+   * through interrupt
+   */
   asm volatile("movl %0,%%esp; jmp intr_exit" ::"g"(proc_stack) : "memory");
 }
 
@@ -69,6 +74,7 @@ void page_dir_activate(struct task_struct *pthread) {
   uint32_t page_dir_phy_addr = 0x100000;
   /* thread or process ? */
   if (pthread->pg_dir != NULL) {
+    /* process, Swithc PD  */
     page_dir_phy_addr = addr_v2p((uint32_t)pthread->pg_dir);
   }
   asm volatile("movl %0, %%cr3" ::"r"(page_dir_phy_addr) : "memory");
@@ -105,8 +111,8 @@ uint32_t *create_page_dir(void) {
   }
 
   /* create kernel entrance in user virtual address space by mapping the upper
-   * 1GB to the kernel physical address space (1024/4=256 entries in PD, which
-   * is 1GB)
+   * 1GB (PDE.768~ PDE.1023) to the kernel physical address space (1024/4=256
+   * entries in PD, which is 1GB)
    */
   memcpy((uint32_t *)((uint32_t)user_page_dir_vaddr + 0x300 * 4),
          (uint32_t *)(0xfffff000 + 0x300 * 4), 1024);
@@ -134,13 +140,13 @@ void create_user_vaddr_bitmap(struct task_struct *user_prog) {
       DIV_ROUND_UP((0xc0000000 - USER_VADDR_START) / PAGE_SIZE / 8, PAGE_SIZE);
   user_prog->userprog_vaddr.vaddr_bitmap.bits = get_kernel_pages(bitmap_pg_cnt);
   user_prog->userprog_vaddr.vaddr_bitmap.bmap_bytes_len =
-      bitmap_pg_cnt * PAGE_SIZE;
+      (0xc0000000 - USER_VADDR_START) / PAGE_SIZE / 8;
   bitmap_init(&user_prog->userprog_vaddr.vaddr_bitmap);
 }
 
 /**
- * process_execute() - Creates and executes a new user process.
- * @filename: Pointer to the filename of the process to execute.
+ * process_execute() - Creates a new user process.
+ * @filename: Pointer to the filename of the process to (ready to) execute.
  * @name: Name of the process.
  *
  * This function creates a new user process, initializes its thread structure,
@@ -149,16 +155,23 @@ void create_user_vaddr_bitmap(struct task_struct *user_prog) {
  * directory.
  */
 void process_execute(void *filename, char *name) {
+  /* create PCB for user process (a thread essentially)*/
   struct task_struct *user_thread = get_kernel_pages(1);
+  ASSERT(user_thread != NULL);
+  /* initialize the PCB of user process*/
   init_thread(user_thread, name, default_prio);
+  /* create bitmap for virtual address space  */
   create_user_vaddr_bitmap(user_thread);
+  /* initialize thread stack */
   thread_create(user_thread, start_process, filename);
+  /* create user process's page directory for address mapping*/
   user_thread->pg_dir = create_page_dir();
 
+  /* ready to run  */
   enum intr_status old_status = intr_disable();
   ASSERT(!list_elem_find(&thread_ready_list, &user_thread->general_tag));
   list_append(&thread_ready_list, &user_thread->general_tag);
-  ASSERT(!list_elem_find(&thread_all_list, &user_thread->general_tag));
-  list_append(&thread_all_list, &user_thread->general_tag);
+  ASSERT(!list_elem_find(&thread_all_list, &user_thread->all_list_tag));
+  list_append(&thread_all_list, &user_thread->all_list_tag);
   intr_set_status(old_status);
 }

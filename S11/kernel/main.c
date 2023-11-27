@@ -23,12 +23,12 @@ int test_var_b = 0;
 int main() {
   put_str("I am kernel\n");
   init_all();
-  thread_start("consumer_a", 31, kthread_a, " A_");
-  thread_start("consumer_b", 31, kthread_b, " B_");
+  thread_start("kthread_a", 31, kthread_a, "argA ");
+  thread_start("kthread_b", 31, kthread_b, "argB ");
   process_execute(u_prog_a, "user_prog_a");
   process_execute(u_prog_b, "user_prog_b");
   intr_enable();
-  console_put_str("kernel done!");
+
   while (1)
     ;
   return 0;
@@ -36,14 +36,14 @@ int main() {
 
 void kthread_a(void *arg) {
   while (1) {
-    console_put_str("v_a:0x");
+    console_put_str(" v_a:0x");
     console_put_int(test_var_a);
   }
 }
 
 void kthread_b(void *arg) {
   while (1) {
-    console_put_str("v_b:0x");
+    console_put_str(" v_b:0x");
     console_put_int(test_var_b);
   }
 }
