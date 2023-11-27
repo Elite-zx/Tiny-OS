@@ -1,6 +1,6 @@
 /*
  * Author: Xun Morris
- * Time: 2023-11-20
+ * Time: 2023-11-26
  */
 #include "thread.h"
 #include "debug.h"
@@ -9,6 +9,7 @@
 #include "list.h"
 #include "memory.h"
 #include "print.h"
+#include "process.h"
 #include "stdint.h"
 #include "string.h"
 #include "switch.h"
@@ -33,7 +34,7 @@ static void kernel_thread(thread_func *function, void *func_arg) {
 }
 
 /**
- * thread_create - Initializes a thread stack.
+ * thread_create - Initializes a thread stack
  * @thread: Pointer to the task_struct representing the thread.
  * @function: The function to be executed by the thread.
  * @func_arg: Argument to be passed to the thread function.
@@ -57,6 +58,9 @@ void thread_create(struct task_struct *thread, thread_func function,
   kthread_stack->func_arg = func_arg;
 }
 
+/**
+ * init_thread - initialize PCB for thread
+ */
 void init_thread(struct task_struct *thread, char *name, int _priority) {
   /* clear pcb to 0  */
   memset(thread, 0, sizeof(*thread));
@@ -142,6 +146,7 @@ void schedule() {
   struct task_struct *next =
       elem2entry(struct task_struct, general_tag, thread_tag);
   next->status = TASK_RUNNING;
+  process_activate(next);
   switch_to(cur_thread, next);
 }
 

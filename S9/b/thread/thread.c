@@ -13,7 +13,7 @@
 #include "string.h"
 #include "switch.h"
 
-#define PG_SIZE 1024
+#define PG_SIZE 4096
 
 struct task_struct *main_thread;
 struct list thread_ready_list;

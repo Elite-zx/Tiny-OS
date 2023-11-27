@@ -8,7 +8,7 @@
 #include "stdint.h"
 #include "string.h"
 
-#define PG_SIZE 1024
+#define PG_SIZE 4096
 
 /**
  * kernel_thread - Wrapper function for a thread function.
