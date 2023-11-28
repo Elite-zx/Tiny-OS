@@ -3,4 +3,5 @@
 #include "stdint.h"
 uint32_t sys_getpid();
 void syscall_init();
+uint32_t sys_write(char *str);
 #endif
