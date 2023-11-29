@@ -1,13 +1,12 @@
 /*
  * Author: Xun Morris
- * Time: 2023-11-20
+ * Time: 2023-11-29
  */
 #ifndef __THREAD_THREAD_H
 #define __THREAD_THREAD_H
 #include "list.h"
 #include "memory.h"
 #include "stdint.h"
-#include <stdint.h>
 
 typedef void thread_func(void *);
 typedef int16_t pid_t;
@@ -104,7 +103,11 @@ struct task_struct {
 
   /* page table, NULL if it is TCB, */
   uint32_t *pg_dir;
+
+  /* virtual memory pool of user process */
   struct virtual_addr userprog_vaddr;
+  struct mem_block_desc u_mb_desc_arr[MB_DESC_CNT];
+
   uint32_t stack_magic;
 };
 

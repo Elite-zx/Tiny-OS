@@ -166,6 +166,7 @@ void process_execute(void *filename, char *name) {
   thread_create(user_thread, start_process, filename);
   /* create user process's page directory for address mapping*/
   user_thread->pg_dir = create_page_dir();
+  block_desc_init(user_thread->u_mb_desc_arr);
 
   /* ready to run  */
   enum intr_status old_status = intr_disable();

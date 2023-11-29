@@ -1,3 +1,7 @@
+/*
+ * Author: Xun Morris
+ * Time: 2023-11-28
+ */
 #ifndef __LIB_STDIO_H
 #define __LIB_STDIO_H
 #include "stdint.h"

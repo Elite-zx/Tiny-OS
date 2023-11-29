@@ -1,11 +1,13 @@
 /*
  * Author: Xun Morris
- * Time: 2023-11-16
+ * Time: 2023-11-29
  */
 #include "memory.h"
 #include "bitmap.h"
 #include "debug.h"
 #include "global.h"
+#include "interrupt.h"
+#include "list.h"
 #include "print.h"
 #include "string.h"
 #include "sync.h"
@@ -36,8 +38,22 @@ struct pool {
 };
 
 struct pool kernel_pool, user_pool;
-
 struct virtual_addr kernel_vaddr;
+
+/**
+ * arena - arena meta info
+ * @desc: ponter to memory block descriptor
+ * @cnt: if large is true, cnt represents the number of page frames, otherwise
+ * it represents the number of free memory blocks in arena
+ * @large_mb: related with cnt
+ */
+struct arena {
+  struct mem_block_desc *desc;
+  uint32_t cnt;
+  bool large_mb;
+};
+
+struct mem_block_desc k_mb_desc_arr[MB_DESC_CNT];
 
 /**
  * mem_pool_init() - Initializes the physical and virtual memory pools for
@@ -115,10 +131,22 @@ static void mem_pool_init(uint32_t all_mem) {
   put_str("  mem_pool_init done\n");
 }
 
+void block_desc_init(struct mem_block_desc *k_mb_desc_arr) {
+  uint16_t desc_idx, _block_size = 16;
+  for (desc_idx = 0; desc_idx < MB_DESC_CNT; desc_idx++) {
+    k_mb_desc_arr[desc_idx].block_size = _block_size;
+    k_mb_desc_arr[desc_idx].block_per_arena =
+        (PAGE_SIZE - sizeof(struct arena)) / _block_size;
+    list_init(&k_mb_desc_arr[desc_idx].free_list);
+    _block_size *= 2;
+  }
+}
+
 void mem_init() {
   put_str("mem_init start\n");
   uint32_t mem_bytes_total = (*(uint32_t *)(0xb00));
   mem_pool_init(mem_bytes_total);
+  block_desc_init(k_mb_desc_arr);
   put_str("mem_init done\n");
 }
 
@@ -413,4 +441,96 @@ void *get_a_page(enum pool_flags pf, uint32_t vaddr) {
 uint32_t addr_v2p(uint32_t vaddr) {
   uint32_t *pte_phy_addr = pte_ptr(vaddr);
   return ((*pte_phy_addr & 0xfffff000) + (vaddr & 0x00000fff));
+}
+
+static struct mem_block *arena_2_block(struct arena *a, uint32_t idx) {
+  return (struct mem_block *)((uint32_t)a + sizeof(struct arena) +
+                              idx * a->desc->block_size);
+}
+
+static struct arena *block_2_arena(struct mem_block *mb) {
+  return (struct arena *)((uint32_t)mb & 0xfffff000);
+}
+
+void *sys_malloc(uint32_t _size) {
+  enum pool_flags PF;
+  struct pool *mem_pool;
+  uint32_t pool_size;
+  struct mem_block_desc *desc;
+  struct task_struct *cur_thread = running_thread();
+
+  if (cur_thread->pg_dir == NULL) {
+    PF = PF_KERNEL;
+    pool_size = kernel_pool.pool_size;
+    mem_pool = &kernel_pool;
+    desc = k_mb_desc_arr;
+  } else {
+    PF = PF_USER;
+    pool_size = user_pool.pool_size;
+    mem_pool = &user_pool;
+    desc = cur_thread->u_mb_desc_arr;
+  }
+
+  if (!(_size < pool_size))
+    return NULL;
+
+  struct arena *a = NULL;
+  struct mem_block *b = NULL;
+  lock_acquire(&mem_pool->_lock);
+
+  if (_size > 1024) {
+    uint32_t pg_cnt = DIV_ROUND_UP(_size + sizeof(struct arena), PAGE_SIZE);
+    a = malloc_page(PF, pg_cnt);
+    if (a != NULL) {
+      memset(a, 0, pg_cnt * PAGE_SIZE);
+      a->desc = NULL;
+      a->cnt = pg_cnt;
+      a->large_mb = true;
+      lock_release(&mem_pool->_lock);
+      return (void *)(a + 1);
+    } else {
+      lock_release(&mem_pool->_lock);
+      return NULL;
+    }
+  } else {
+    /* find proper memory block from small to large  */
+    uint8_t desc_idx;
+    for (desc_idx = 0; desc_idx < MB_DESC_CNT; desc_idx++) {
+      if (_size <= desc[desc_idx].block_size)
+        break;
+    }
+    if (list_empty(&desc[desc_idx].free_list)) {
+      /* new arena */
+      a = malloc_page(PF, 1);
+      if (a == NULL) {
+        lock_release(&mem_pool->_lock);
+        return NULL;
+      }
+      memset(a, 0, PAGE_SIZE);
+      a->desc = &desc[desc_idx];
+      a->large_mb = false;
+      a->cnt = desc[desc_idx].block_per_arena;
+
+      /* Divide memory blocks in page frames  (arena)  */
+      uint32_t block_idx;
+      enum intr_status old_status = intr_disable();
+      for (block_idx = 0; block_idx < a->desc->block_per_arena; block_idx++) {
+        b = arena_2_block(a, block_idx);
+        ASSERT(!list_elem_find(&a->desc->free_list, &b->free_elem));
+        list_append(&a->desc->free_list, &b->free_elem);
+      }
+      intr_set_status(old_status);
+    }
+    /* now! allocate free memory block from free_list which maintained by memory
+     * block descriptor*/
+
+    /* get the address of target free memory block b from its member free_elem*/
+    b = elem2entry(struct mem_block, free_elem,
+                   list_pop(&desc[desc_idx].free_list));
+    memset(b, 0, desc[desc_idx].block_size);
+    a = block_2_arena(b);
+    --a->cnt;
+    lock_release(&mem_pool->_lock);
+    return (void *)b;
+  }
 }
