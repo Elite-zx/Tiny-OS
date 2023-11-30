@@ -35,19 +35,93 @@ int main() {
 }
 
 void kthread_a(void *arg) {
-  void *addr = sys_malloc(33);
-  console_put_str(" I am thread_a using sys_malloc(33), addr is 0x");
-  console_put_int((int)addr);
-  console_put_char('\n');
+  void *addr1;
+  void *addr2;
+  void *addr3;
+  void *addr4;
+  void *addr5;
+  void *addr6;
+  void *addr7;
+  console_put_str(" thread_a start\n");
+  int max = 1000;
+  while (max-- > 0) {
+    int size = 128;
+    addr1 = sys_malloc(size);
+    size *= 2;
+    addr2 = sys_malloc(size);
+    size *= 2;
+    addr3 = sys_malloc(size);
+    sys_free(addr1);
+    size *= 2;
+    addr4 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    size *= 2;
+    addr5 = sys_malloc(size);
+    size *= 2;
+    addr6 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    addr7 = sys_malloc(size);
+    sys_free(addr2);
+    sys_free(addr3);
+    sys_free(addr4);
+    sys_free(addr5);
+    sys_free(addr6);
+    sys_free(addr7);
+  }
+  console_put_str(" thread_a end\n");
   while (1)
     ;
 }
 
 void kthread_b(void *arg) {
-  void *addr = sys_malloc(33);
-  console_put_str(" I am thread_b using sys_malloc(33), addr is 0x");
-  console_put_int((int)addr);
-  console_put_char('\n');
+  void *addr1;
+  void *addr2;
+  void *addr3;
+  void *addr4;
+  void *addr5;
+  void *addr6;
+  void *addr7;
+  void *addr8;
+  void *addr9;
+  console_put_str(" thread_b start\n");
+  int max = 1000;
+  while (max-- > 0) {
+    int size = 9;
+    addr1 = sys_malloc(size);
+    size *= 2;
+    addr2 = sys_malloc(size);
+    size *= 2;
+    addr3 = sys_malloc(size);
+    sys_free(addr1);
+    size *= 2;
+    addr4 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    size *= 2;
+    addr5 = sys_malloc(size);
+    size *= 2;
+    addr6 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    addr7 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    addr8 = sys_malloc(size);
+    size *= 2;
+    size *= 2;
+    addr9 = sys_malloc(size);
+    sys_free(addr2);
+    sys_free(addr3);
+    sys_free(addr4);
+    sys_free(addr5);
+    sys_free(addr6);
+    sys_free(addr7);
+    sys_free(addr8);
+    sys_free(addr9);
+  }
+  console_put_str(" thread_b end\n");
   while (1)
     ;
 }
