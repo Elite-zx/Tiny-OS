@@ -7,7 +7,7 @@
 #include "global.h"
 #include "io.h"
 #include "print.h"
-#include <stdint.h>
+#include "stdint.h"
 
 /* CTRL/DATA port of main 8259A chip.*/
 #define PIC_M_CTRL 0x20

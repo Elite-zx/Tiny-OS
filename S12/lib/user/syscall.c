@@ -4,7 +4,8 @@
  */
 
 #include "syscall.h"
-#include <stdint.h>
+#include "memory.h"
+#include "stdint.h"
 
 #define _syscall0(NUMBER)                                                      \
   ({                                                                           \
@@ -45,3 +46,5 @@
 
 uint32_t getpid() { return _syscall0(SYS_GETPID); }
 uint32_t write(char *str) { return _syscall1(SYS_WRITE, str); }
+void *malloc(uint32_t size) { return (void *)_syscall1(SYS_MALLOC, size); }
+void free(uint32_t *ptr) { _syscall1(SYS_FREE, ptr); }

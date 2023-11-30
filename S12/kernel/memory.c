@@ -9,10 +9,10 @@
 #include "interrupt.h"
 #include "list.h"
 #include "print.h"
+#include "stdint.h"
 #include "string.h"
 #include "sync.h"
 #include "thread.h"
-#include <stdint.h>
 
 /* virtual address for kernel bitmap  */
 #define MEM_BITMAP_BASE 0xc009a000
@@ -462,6 +462,16 @@ static struct arena *block_2_arena(struct mem_block *mb) {
 /**
  * sys_malloc() - Allocate memory of the given size for user or kernel.
  * @_size: The size of memory to be allocated.
+ *
+ * This function allocates memory of the specified size either from the kernel
+ * pool or the user pool based on the current thread's attributes. It handles
+ * both large and small memory requests with different strategies. Large
+ * requests are allocated directly as page frames, while small requests are
+ * managed through memory block descriptors.
+ *
+ * Context: Invokes critical section handling with lock_acquire and lock_release
+ * to ensure synchronization in concurrent environments.
+ * Return: A pointer to the allocated memory block; NULL if allocation fails.
  */
 void *sys_malloc(uint32_t _size) {
   enum pool_flags PF;
@@ -546,6 +556,13 @@ void *sys_malloc(uint32_t _size) {
   }
 }
 
+/**
+ * pfree() - Free a physical page.
+ * @page_phy_addr: The physical address of the page to be freed.
+ *
+ * Marks the given physical page as free in the corresponding memory pool's
+ * bitmap. This function is used internally for managing physical pages.
+ */
 void pfree(uint32_t page_phy_addr) {
   struct pool *mem_pool;
   uint32_t bit_idx = 0;
@@ -555,6 +572,14 @@ void pfree(uint32_t page_phy_addr) {
   bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
 
+/**
+ * page_table_pte_remove() - Remove a page table entry.
+ * @vaddr: Virtual address whose page table entry is to be removed.
+ *
+ * Clears the page present flag in the page table entry corresponding to the
+ * given virtual address. It also updates the Translation Lookaside Buffer (TLB)
+ * to keep it in sync with page table modifications.
+ */
 static void page_table_pte_remove(uint32_t vaddr) {
   uint32_t *pte = pte_ptr(vaddr);
   *pte &= PG_P_0;
@@ -562,6 +587,16 @@ static void page_table_pte_remove(uint32_t vaddr) {
   asm volatile("invlpg %0" ::"m"(vaddr) : "memory");
 }
 
+/**
+ * vaddr_remove() - Remove virtual address mappings.
+ * @pf: Memory pool flag indicating user or kernel space.
+ * @vaddr: The starting virtual address of the range.
+ * @pg_cnt: The number of pages to remove.
+ *
+ * Removes a range of virtual addresses from the current thread's or kernel's
+ * virtual address bitmap, effectively marking that range as free. This is part
+ * of the memory deallocation process.
+ */
 static void vaddr_remove(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   uint32_t allocated_bit_idx_start = -1;
   uint32_t vaddr = (uint32_t)_vaddr;
@@ -584,6 +619,16 @@ static void vaddr_remove(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   }
 }
 
+/**
+ * mfree_page() - Free pages allocated to a given virtual address.
+ * @pf: Indicates whether the pages are in the user or kernel pool.
+ * @vaddr: Virtual address to start freeing pages from.
+ * @pg_cnt: The number of pages to free.
+ *
+ * Frees the specified number of pages starting from the given virtual address.
+ * This includes both freeing the physical pages and removing the corresponding
+ * virtual address mappings (that is, PTE).
+ */
 void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   uint32_t vaddr = (uint32_t)_vaddr;
   uint32_t cnt = 0;
@@ -625,10 +670,22 @@ void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   vaddr_remove(pf, _vaddr, pg_cnt);
 }
 
+/**
+ * sys_free() - Free a previously allocated memory block.
+ * @ptr: Pointer to the memory block to be freed.
+ *
+ * Frees the memory block pointed to by ptr, which could be a part of a larger
+ * memory arena. The function determines whether the block is a part of a small
+ * block allocation or a large page frame allocation and frees it accordingly.
+ *
+ * Context: Ensures synchronized access to memory pools in a multi-threaded
+ * environment by using locks.
+ */
 void sys_free(void *ptr) {
   ASSERT(ptr != NULL);
   if (ptr == NULL)
     return;
+
   enum pool_flags pf;
   struct pool *mem_pool;
 
