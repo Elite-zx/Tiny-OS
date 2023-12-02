@@ -27,8 +27,6 @@ int main() {
   put_str("I am kernel\n");
   init_all();
   intr_enable();
-  thread_start("kthread_a", 31, kthread_a, "I am thread_a");
-  thread_start("kthread_b", 31, kthread_b, "I am thread_b");
   while (1)
     ;
   return 0;

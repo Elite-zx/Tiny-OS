@@ -7,7 +7,7 @@
 #include "interrupt.h"
 #include "io.h"
 #include "print.h"
-#include "stdint"
+#include "stdint.h"
 #include "thread.h"
 
 #define IRQ0_FREQUENCY 100
@@ -62,14 +62,20 @@ static void intr_time_handler() {
   }
 }
 
+/**
+ * ticks_to_sleep - let task sleep for sleep_ticks ticks
+ * sleep_ticks: the number of ticks to sleep
+ */
 static void ticks_to_sleep(uint32_t sleep_ticks) {
   uint32_t start_ticks = sleep_ticks;
   while (ticks - start_ticks < sleep_ticks) {
+    /* Yields the CPU */
     thread_yield();
   }
 }
 
 void mtime_sleep(uint32_t m_seconds) {
+  /* convert seconds to ticks  */
   uint32_t sleep_ticks = DIV_ROUND_UP(m_seconds, millisecond_per_intr);
   ASSERT(sleep_ticks > 0);
   ticks_to_sleep(sleep_ticks);

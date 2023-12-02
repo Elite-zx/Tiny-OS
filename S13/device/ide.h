@@ -6,7 +6,7 @@
 /**
  * struct partition - Represents a disk partition.
  * @start_lba: The starting sector of the partition.
- * @sec_cnt: The number of sectors in the partition.
+ * @sector_cnt: The number of sectors in the partition.
  * @my_disk: Pointer to the disk containing this partition.
  * @part_tag: List element for queueing.
  * @name: Name of the partition.
@@ -20,7 +20,7 @@
  */
 struct partition {
   uint32_t start_LBA;
-  uint32_t sec_cnt;
+  uint32_t sector_cnt;
   struct disk *which_disk;
   struct list_elem part_tag;
   char name[8];
@@ -72,3 +72,5 @@ struct ide_channel {
   struct semaphore disk_done;
   struct disk devices[2];
 };
+
+void ide_init();

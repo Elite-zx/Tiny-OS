@@ -1,6 +1,6 @@
 ##################
 # Author: Xun Morris
-# Time: 2023-11-25
+# Time: 2023-12-02
 ##################
 
 BUILD_DIR =./build
@@ -21,14 +21,15 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o  \
 		 $(BUILD_DIR)/switch.o $(BUILD_DIR)/console.o $(BUILD_DIR)/sync.o \
 		 $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/io_queue.o $(BUILD_DIR)/tss.o \
 		 $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall_init.o $(BUILD_DIR)/syscall.o \
-		 $(BUILD_DIR)/stdio.o
+		 $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio_kernel.o $(BUILD_DIR)/ide.o
 
 ################## compile C program ##################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/init.o: kernel/init.c kernel/init.h kernel/interrupt.h kernel/global.h \
-	lib/kernel/io.h lib/kernel/print.h lib/stdint.h thread/thread.h userprog/syscall_init.h
+	lib/kernel/io.h lib/kernel/print.h lib/stdint.h thread/thread.h userprog/syscall_init.h\
+  device/ide.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/interrupt.o: kernel/interrupt.c kernel/interrupt.h kernel/global.h \
@@ -97,6 +98,15 @@ $(BUILD_DIR)/syscall_init.o: userprog/syscall_init.c userprog/syscall_init.h lib
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/stdio.o: lib/stdio.c lib/stdio.h lib/stdint.h lib/string.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/stdio_kernel.o: lib/kernel/stdio_kernel.c lib/kernel/stdio_kernel.h lib/stdio.h \
+	device/console.h kernel/global.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ide.o: device/ide.c device/ide.h device/timer.h lib/stdint.h kernel/debug.h kernel/global.h \
+	kernel/interrupt.h kernel/memory.h lib/kernel/io.h lib/kernel/list.h  lib/kernel/stdio_kernel.h \
+  thread/sync.h lib/string.h lib/stdio.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## assemble assembly ##################

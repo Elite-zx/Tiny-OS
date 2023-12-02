@@ -67,6 +67,7 @@ void thread_create(struct task_struct *thread, thread_func function,
   kthread_stack->func_arg = func_arg;
 }
 
+/* initialize PCB  */
 void init_thread(struct task_struct *thread, char *name, int _priority) {
   /* clear pcb to 0  */
   memset(thread, 0, sizeof(*thread));
@@ -216,6 +217,7 @@ void thread_yield() {
   intr_set_status(old_status);
 }
 
+/* let the cpu idle  */
 static void idle(void *arg) {
   /* thread blocks itself  */
   while (1) {

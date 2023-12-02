@@ -1,6 +1,6 @@
 /*
  * Author: Xun Morris
- * Time: 2023-11-13
+ * Time: 2023-12-02
  */
 #ifndef __KERNEL_GLOBAL_H
 #define __KERNEL_GLOBAL_H
@@ -118,5 +118,7 @@ struct gdt_desc {
 
 #define DIV_ROUND_UP(X, STEP) ((X + STEP - 1) / (STEP))
 #define PAGE_SIZE 4096
+
+#define UNUSED __attribute__((unused))
 
 #endif

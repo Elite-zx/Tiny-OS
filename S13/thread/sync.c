@@ -44,6 +44,8 @@ void sema_down(struct semaphore *psema) {
   /** if (psema == 0) { */
   while (psema->value == 0) {
     if (list_elem_find(&psema->waiters, &cur_thread->general_tag)) {
+      if (!list_empty(&psema->waiters))
+        PANIC("I am not empty!\n");
       PANIC("The thread blocked has been in waiters list\n");
     }
     list_append(&psema->waiters, &cur_thread->general_tag);
