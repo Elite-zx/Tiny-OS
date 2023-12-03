@@ -1,3 +1,5 @@
+#ifndef __DEVICE_IDE_H
+#define __DEVICE_IDE_H
 #include "bitmap.h"
 #include "list.h"
 #include "stdint.h"
@@ -74,3 +76,5 @@ struct ide_channel {
 };
 
 void ide_init();
+
+#endif

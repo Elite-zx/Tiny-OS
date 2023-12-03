@@ -66,7 +66,7 @@ kernel/interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/sync.o:  thread/sync.c thread/sync.h lib/stdint.h  thread/thread.h\
-	kernel/debug.h  kernel/interrupt.h  lib/kernel/list.h
+	kernel/debug.h  kernel/interrupt.h  lib/kernel/list.h  lib/kernel/stdio_kernel.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/console.o: device/console.c device/console.h lib/stdint.h \

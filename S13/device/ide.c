@@ -15,6 +15,7 @@
 #include "string.h"
 #include "sync.h"
 #include "timer.h"
+
 /* port number decided by channel number  */
 #define reg_data(channel) (channel->port_base + 0)
 #define reg_error(channel) (channel->port_base + 1)
@@ -25,7 +26,7 @@
 #define reg_device(channel) (channel->port_base + 6)
 #define reg_status(channel) (channel->port_base + 7)
 #define reg_cmd(channel) (reg_status(channel))
-#define reg_alte_status(channel) (channel->port_base + 0x206)
+#define reg_altne_status(channel) (channel->port_base + 0x206)
 #define reg_ctl(channel) (reg_alte_status(channel))
 
 /**
@@ -99,7 +100,7 @@ struct partition_table_entry {
 } __attribute__((packed));
 
 /**
- * struct boot_sector --- Structure for MBR/EBR
+ * struct boot_sector - Structure for MBR/EBR
  * @other: placeholder, which represents boot code
  * @partition_table: the partition table has 4 entries, a total of 64 bytes
  * @signature:magic number --- 0x55,0xaa, which is the mark of MBR
@@ -367,7 +368,7 @@ void ide_write(struct disk *hd, uint32_t LBA, void *buf, uint32_t sector_cnt) {
  *
  * Return: None.
  */
-void intr_hd_handler(uint32_t _IRQ_NO) {
+void intr_hd_handler(uint8_t _IRQ_NO) {
   ASSERT(_IRQ_NO == 0x2e || _IRQ_NO == 0x2f);
   uint8_t channel_NO = _IRQ_NO - 0x2e;
   struct ide_channel *channel = &channels[channel_NO];
@@ -389,11 +390,9 @@ static void identify_disk(struct disk *hd) {
   char id_info[512];
   select_disk(hd);
   cmd_out(hd->which_channel, CMD_IDENTIFY);
-  /* disk start working, I (the hard driver) gonna to sleep -_- ᶻ𝗓  */
 
-  if (list_empty(&hd->which_channel->disk_done.waiters)) {
-    printk("smeaphore waiter is empty!\n");
-  }
+  /* disk start working, I (the hard driver) gonna to sleep -_- ᶻ𝗓 , CPU will
+   * execute other processes/threads or thread idle */
   sema_down(&hd->which_channel->disk_done);
 
   /* hard disk driver is Woken up by hard disk interrupt handler */

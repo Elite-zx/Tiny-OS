@@ -145,21 +145,23 @@ void schedule() {
     cur_thread->ticks = cur_thread->priority;
     cur_thread->status = TASK_READY;
   } else {
-    /* other events  */
+    /* other events, such as thread_block, thread_yield */
   }
 
   if (list_empty(&thread_ready_list)) {
     thread_unblock(idle_thread);
-  } else {
-    struct list_elem *thread_tag;
-    thread_tag = list_pop(&thread_ready_list);
-    /* get the starting address of pcb according to general_tag */
-    struct task_struct *next =
-        elem2entry(struct task_struct, general_tag, thread_tag);
-    next->status = TASK_RUNNING;
-    process_activate(next);
-    switch_to(cur_thread, next);
   }
+
+  ASSERT(!list_empty(&thread_ready_list));
+  struct list_elem *thread_tag;
+  thread_tag = list_pop(&thread_ready_list);
+  /* get the starting address of pcb according to general_tag */
+  struct task_struct *next =
+      elem2entry(struct task_struct, general_tag, thread_tag);
+  next->status = TASK_RUNNING;
+  /* update tss  */
+  process_activate(next);
+  switch_to(cur_thread, next);
 }
 
 /**
@@ -219,10 +221,12 @@ void thread_yield() {
 
 /* let the cpu idle  */
 static void idle(void *arg) {
-  /* thread blocks itself  */
   while (1) {
+    /* thread blocks itself on first run or awake from hlt instruction*/
     thread_block(TASK_BLOCKED);
-    asm volatile("sti;hlt" ::: "memory");
+
+    /* awakened by schedule (now, thread_ready_list is empty), halt CPU  */
+    asm volatile("sti; hlt" ::: "memory");
   }
 }
 
