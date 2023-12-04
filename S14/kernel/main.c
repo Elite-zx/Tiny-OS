@@ -27,7 +27,6 @@ int main() {
   put_str("I am kernel\n");
   init_all();
   intr_enable();
-  put_str("done!\n");
 
   while (1)
     ;

@@ -8,14 +8,80 @@
 #include "global.h"
 #include "ide.h"
 #include "inode.h"
+#include "list.h"
 #include "memory.h"
 #include "stdint.h"
 #include "stdio_kernel.h"
 #include "string.h"
 #include "super_block.h"
+#include <stdint.h>
 
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[2];
+extern struct list partition_list;
+
+struct partition *cur_part;
+
+static bool mount_partition(struct list_elem *pelem, const int arg) {
+  char *part_name = (char *)arg;
+  struct partition *part = elem2entry(struct partition, part_tag, pelem);
+
+  if (!strcmp(part->name, part_name)) {
+    cur_part = part;
+    struct disk *hd = cur_part->which_disk;
+
+    /*****************************************************************  */
+    /* read super block from disk to memory */
+    /*****************************************************************  */
+    struct super_block *_sup_b_buf =
+        (struct super_block *)sys_malloc(SECTOR_SIZE);
+    cur_part->sup_b =
+        (struct super_block *)sys_malloc(sizeof(struct super_block));
+
+    if (cur_part->sup_b == NULL)
+      PANIC("allocate memory failed!");
+
+    memset(_sup_b_buf, 0, SECTOR_SIZE);
+    ide_read(hd, cur_part->start_LBA + 1, _sup_b_buf, 1);
+    memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
+
+    /*****************************************************************  */
+    /* read free blocks bitmap from disk to memory */
+    /*****************************************************************  */
+    cur_part->block_bitmap.bits = (uint8_t *)sys_malloc(
+        _sup_b_buf->free_blocks_bitmap_sectors * SECTOR_SIZE);
+
+    if (cur_part->block_bitmap.bits == NULL)
+      PANIC("allocate memory failed!");
+
+    cur_part->block_bitmap.bmap_bytes_len =
+        _sup_b_buf->free_blocks_bitmap_sectors * SECTOR_SIZE;
+
+    ide_read(hd, _sup_b_buf->free_blocks_bitmap_LBA,
+             cur_part->block_bitmap.bits,
+             _sup_b_buf->free_blocks_bitmap_sectors);
+
+    /*****************************************************************  */
+    /* read inode bitmap from disk to memory */
+    /*****************************************************************  */
+    cur_part->inode_bitmap.bits =
+        (uint8_t *)sys_malloc(_sup_b_buf->inode_bitmap_sectors * SECTOR_SIZE);
+
+    if (cur_part->inode_bitmap.bits == NULL)
+      PANIC("allocate memory failed!");
+
+    cur_part->inode_bitmap.bmap_bytes_len =
+        _sup_b_buf->inode_bitmap_sectors * SECTOR_SIZE;
+
+    ide_read(hd, _sup_b_buf->inode_bitmap_LBA, cur_part->inode_bitmap.bits,
+             _sup_b_buf->inode_bitmap_sectors);
+
+    list_init(&cur_part->open_inodes);
+    printk("mount %s done!", part->name);
+    return true;
+  }
+  return false;
+}
 
 static void partition_format(struct disk *_hd, struct partition *part) {
   /* OBR */
@@ -224,4 +290,7 @@ void filesys_init() {
     channel_NO++;
   }
   sys_free(_sup_b_buf);
+
+  char default_part[8] = "sdb1";
+  list_traversal(&partition_list, mount_partition, (int)default_part);
 }

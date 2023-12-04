@@ -16,7 +16,7 @@
  * @my_disk: Pointer to the disk containing this partition.
  * @part_tag: List element for queueing.
  * @name: Name of the partition.
- * @sb: Superblock of the partition.
+ * @sup_b: Superblock of the partition.
  * @block_bitmap: Bitmap for block allocation.
  * @inode_bitmap: Bitmap for inode allocation.
  * @open_inodes: List of open inodes in the partition.
@@ -30,7 +30,7 @@ struct partition {
   struct disk *which_disk;
   struct list_elem part_tag;
   char name[8];
-  struct super_block *sb;
+  struct super_block *sup_b;
   struct bitmap block_bitmap;
   struct bitmap inode_bitmap;
   struct list open_inodes;
