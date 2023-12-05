@@ -39,10 +39,31 @@ struct tss {
 };
 static struct tss tss;
 
+/**
+ * update_tss_esp() - Update the ESP0 field in the TSS.
+ * @pthread: Pointer to the task_struct whose 0-level stack will be used for
+ * ESP0.
+ *
+ * This function updates the Task State Segment (TSS) ESP0 field to point to the
+ * top of the 0-level stack of the given task structure (pthread). This is
+ * essential for proper context switching, especially when transitioning from
+ * user mode to kernel mode.
+ */
 void update_tss_esp(struct task_struct *pthread) {
   tss.esp0 = (uint32_t *)((uint32_t)pthread + PAGE_SIZE);
 }
 
+/**
+ * make_gdt_desc() - Create a descriptor for the Global Descriptor Table (GDT).
+ * @desc_addr: Base address of the descriptor.
+ * @limit: The limit of the segment.
+ * @attr_low: Lower 8 bits of the segment attribute.
+ * @attr_high: Higher 8 bits of the segment attribute.
+ *
+ * Returns a structure representing a GDT descriptor. The descriptor includes
+ * the segment's base address, limit, and attributes. This function is used for
+ * setting up segments in the GDT, such as code, data, and TSS segments.
+ */
 static struct gdt_desc make_gdt_desc(uint32_t *desc_addr, uint32_t limit,
                                      uint8_t attr_low, uint8_t attr_high) {
   uint32_t desc_base = (uint32_t)desc_addr;
@@ -57,6 +78,16 @@ static struct gdt_desc make_gdt_desc(uint32_t *desc_addr, uint32_t limit,
   return desc;
 }
 
+/**
+ * tss_init() - Initialize the Task State Segment (TSS) and load the GDT.
+ *
+ * This function initializes the TSS with default values, including setting up
+ * the stack segment and I/O bitmap. It also creates descriptors in the GDT for
+ * the TSS and for DPL 3 code and data segments. Finally, it loads the new GDT
+ * and sets the Task Register to use the new TSS. This function is crucial for
+ * setting up a working environment for task switching and privilege level
+ * changes.
+ */
 void tss_init() {
   put_str("tss_init start\n");
   uint32_t tss_size = sizeof(tss);

@@ -114,6 +114,17 @@ struct boot_sector {
   uint16_t signature;
 } __attribute__((packed));
 
+/**
+ * swap_pairs_bytes() - Swap adjacent bytes in a string.
+ * @dst: Pointer to the source string.
+ * @buf: Pointer to the buffer where the result will be stored.
+ * @len: The number of bytes in the source string to process.
+ *
+ * This function takes a string from 'dst', swaps each pair of adjacent bytes,
+ * and stores the result in 'buf'. It is designed to handle strings where the
+ * characters are in reversed byte order. The resulting string in 'buf' is
+ * null-terminated.
+ */
 static void swap_pairs_bytes(const char *dst, char *buf, uint32_t len) {
   uint8_t idx;
   for (idx = 0; idx < len; idx += 2) {
@@ -362,11 +373,12 @@ void ide_write(struct disk *hd, uint32_t LBA, void *buf, uint32_t sector_cnt) {
 
 /**
  * intr_hd_handler() - Hard disk interrupt handler.
- * @irq_no: Interrupt request number.
+ * @irq_no: The IRQ number that triggered the interrupt.
  *
- * This function is an interrupt handler for hard disk operations.
- *
- * Return: None.
+ * This is the interrupt handler for hard disk operations. It verifies the IRQ
+ * number, retrieves the corresponding IDE channel, and processes the interrupt
+ * if it is expected. This handler acknowledges the interrupt to the disk
+ * controller and signals completion of disk operations.
  */
 void intr_hd_handler(uint8_t _IRQ_NO) {
   ASSERT(_IRQ_NO == 0x2e || _IRQ_NO == 0x2f);
@@ -385,7 +397,16 @@ void intr_hd_handler(uint8_t _IRQ_NO) {
   }
 }
 
-/* get disk info  */
+/**
+ * identify_disk() - Retrieve and display disk identification information.
+ * @hd: Pointer to the disk structure.
+ *
+ * This function sends an IDENTIFY command to the specified disk and waits for
+ * the operation to complete. It reads the disk identification information,
+ * processes it, and prints out the disk's serial number, model, total number of
+ * sectors, and capacity. The function utilizes swap_pairs_bytes to correct the
+ * byte order of the serial number and model information.
+ */
 static void identify_disk(struct disk *hd) {
   char id_info[512];
   select_disk(hd);
@@ -417,7 +438,17 @@ static void identify_disk(struct disk *hd) {
   printk("      CAPACITY: %dMB\n", sectors * 512 / 1024 / 1024);
 }
 
-/* scan disk partition table, get DPT info */
+/**
+ * partition_scan() - Scan all partitions in a sector of a disk.
+ * @hd: Pointer to the disk structure to be scanned.
+ * @ext_lba: The sector address where the scan starts.
+ *
+ * This function scans for partition entries in a given sector of the specified
+ * disk. It handles both primary and extended partitions. For extended
+ * partitions, it recursively scans their entries. The function updates global
+ * partition data structures(prim_parts and logic_parts in hd) with the found
+ * partition information.
+ */
 static void partition_scan(struct disk *hd, uint32_t _LBA) {
   /* Do not use stack space because of recursion, use heap space instead  */
   struct boot_sector *bs = sys_malloc(sizeof(struct boot_sector));
@@ -485,6 +516,17 @@ static void partition_scan(struct disk *hd, uint32_t _LBA) {
   sys_free(bs);
 }
 
+/**
+ * print_partition_info() - Print information about a partition.
+ * @pelem: List element representing a partition.
+ * @arg: Unused argument, present for compatibility with list traversal
+ * function.
+ *
+ * This is a helper function used with list_traversal to print detailed
+ * information about each partition. It extracts the partition structure from
+ * the list element and prints its name, start LBA, and sector count. Always
+ * returns false to continue list traversal.
+ */
 static bool print_partition_info(struct list_elem *pelem, int arg UNUSED) {
   /* get partition itself from its member  */
   struct partition *part = elem2entry(struct partition, part_tag, pelem);
@@ -493,6 +535,15 @@ static bool print_partition_info(struct list_elem *pelem, int arg UNUSED) {
   return false;
 }
 
+/**
+ * ide_init() - Initialize IDE hard disk controller.
+ *
+ * This function initializes the IDE channels and associated hard disks. It
+ * retrieves the number of hard disks, initializes data structures for each IDE
+ * channel and disk, and scans for partitions on each disk. The function
+ * registers the hard disk interrupt handler and prints out all found partition
+ * information.
+ */
 void ide_init() {
   printk("ide_init start\n");
   /* Get the number of hard drives from virtual address 0x475 (which

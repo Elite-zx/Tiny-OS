@@ -470,6 +470,7 @@ void *sys_malloc(uint32_t _size) {
   struct mem_block_desc *desc;
   struct task_struct *cur_thread = running_thread();
 
+  /* kernel thread or user process  */
   if (cur_thread->pg_dir == NULL) {
     PF = PF_KERNEL;
     pool_size = kernel_pool.pool_size;

@@ -22,6 +22,19 @@ extern struct list partition_list;
 
 struct partition *cur_part;
 
+/**
+ * mount_partition() - Mount a partition by name.
+ * @pelem: Pointer to the partition list element.
+ * @arg: Argument representing the name of the partition to mount.
+ *
+ * This function searches for a partition with the given name in the partition
+ * list. If found, it mounts the partition by setting 'cur_part' to the found
+ * partition. It also reads the super block from the disk into memory,
+ * initializes the block bitmap and inode bitmap for the partition, and adds
+ * open inodes to the partition's inode list. Returns true to stop the list
+ * traversal when the desired partition is mounted, otherwise returns false to
+ * continue traversal.
+ */
 static bool mount_partition(struct list_elem *pelem, const int arg) {
   char *part_name = (char *)arg;
   struct partition *part = elem2entry(struct partition, part_tag, pelem);
@@ -83,6 +96,16 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
   return false;
 }
 
+/**
+ * partition_format() - Format a partition and create a file system.
+ * @part: Pointer to the partition to be formatted.
+ *
+ * This function formats the specified partition and initializes its file
+ * system. It sets up the boot sector, super block, block bitmap, inode bitmap,
+ * inode table, and the root directory in the partition. The function writes
+ * these structures to the disk, effectively creating a new file system on the
+ * partition.
+ */
 static void partition_format(struct disk *_hd, struct partition *part) {
   /* OBR */
   uint32_t OS_boot_sectors = 1;
@@ -215,7 +238,7 @@ static void partition_format(struct disk *_hd, struct partition *part) {
   struct inode *i = (struct inode *)buf;
   i->i_NO = 0;
   i->i_size = _sup_b.dir_entry_size * 2;
-  i->i_block[0] = _sup_b.data_start_LBA;
+  i->i_blocks[0] = _sup_b.data_start_LBA;
   ide_write(hd, _sup_b.inode_table_LBA, buf, _sup_b.inode_table_sectors);
 
   /*********************************  */

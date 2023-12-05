@@ -88,6 +88,16 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
   thread->ticks = _priority;
   thread->elapsed_ticks = 0;
   thread->pg_dir = NULL;
+
+  thread->fd_table[0] = 0;
+  thread->fd_table[1] = 1;
+  thread->fd_table[2] = 2;
+  uint8_t fd_dix = 3;
+  while (fd_dix < MAX_FILES_OPEN_PER_PROC) {
+    thread->fd_table[fd_dix] = -1;
+    fd_dix++;
+  }
+
   thread->stack_magic = 0x20011124;
 }
 
