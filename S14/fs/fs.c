@@ -5,6 +5,7 @@
 #include "fs.h"
 #include "debug.h"
 #include "dir.h"
+#include "file.h"
 #include "global.h"
 #include "ide.h"
 #include "inode.h"
@@ -14,11 +15,12 @@
 #include "stdio_kernel.h"
 #include "string.h"
 #include "super_block.h"
-#include <stdint.h>
 
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[2];
 extern struct list partition_list;
+extern struct dir root_dir;
+extern struct file file_table[MAX_FILES_OPEN];
 
 struct partition *cur_part;
 
@@ -58,6 +60,10 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     ide_read(hd, cur_part->start_LBA + 1, _sup_b_buf, 1);
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
+    printk("part I mounted:\n");
+    printk("  magic: 0x%x\n  root_dir_LBA/root_dir_LBA: 0x%x\n",
+           _sup_b_buf->magic, _sup_b_buf->data_start_LBA);
+
     /*****************************************************************  */
     /* read free blocks bitmap from disk to memory */
     /*****************************************************************  */
@@ -90,7 +96,7 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
              _sup_b_buf->inode_bitmap_sectors);
 
     list_init(&cur_part->open_inodes);
-    printk("mount %s done!", part->name);
+    printk("mount %s done!\n", part->name);
     return true;
   }
   return false;
@@ -316,4 +322,194 @@ void filesys_init() {
 
   char default_part[8] = "sdb1";
   list_traversal(&partition_list, mount_partition, (int)default_part);
+
+  open_root_dir(cur_part);
+  uint32_t fd_idx = 0;
+  while (fd_idx < MAX_FILES_OPEN) {
+    file_table[fd_idx++].fd_inode = NULL;
+  }
+}
+
+/**
+ * path_parse() - Extract the top-level name from a path.
+ * @pathname: The full path to parse.
+ * @name_store: Buffer to store the extracted name.
+ *
+ * This function parses a pathname and extracts the highest level name
+ * from it. It skips leading '/' characters and copies the first part
+ * of the pathname until the next '/' or the end of the string. The
+ * extracted name is stored in 'name_store'. The function returns a
+ * pointer to the remainder of the pathname, or NULL if the end of the
+ * pathname has been reached.
+ */
+static char *path_parse(char *pathname, char *name_buf) {
+  if (pathname[0] == '/') {
+    /* skip over the begining '/',  eg: ///home/elite-zx -> home/elite-zx  */
+    while (*(++pathname) == '/')
+      ;
+  }
+  /* eg: pathname--- home/elite-zx -> /elite-zx, name_buf --- home  */
+  while (*pathname != '/' && *pathname != '\0') {
+    *name_buf++ = *pathname++;
+  }
+  if (pathname[0] == '\0') {
+    /* path parse done ! */
+    return NULL;
+  }
+
+  return pathname;
+}
+
+/**
+ * path_depth_cnt() - Count the depth of a given path.
+ * @pathname: The path to count the depth of.
+ *
+ * Returns the number of levels in a given pathname. For example, a path
+ * like "/a/b/c" has a depth of 3. The function iteratively parses the path
+ * to count the number of directories (or levels) it contains.
+ */
+int32_t path_depth_cnt(char *pathname) {
+  ASSERT(pathname != NULL);
+  char *p = pathname;
+  char name_buf[MAX_FILE_NAME_LEN];
+  uint32_t depth = 0;
+
+  p = path_parse(p, name_buf);
+  while (*name_buf) {
+    depth++;
+    memset(name_buf, 0, MAX_FILE_NAME_LEN);
+    if (p) {
+      p = path_parse(p, name_buf);
+    }
+  }
+  return depth;
+}
+
+/**
+ * search_file() - Search for a file or directory in a partition.
+ * @pathname: The name of the file or directory to search for.
+ * @searched_record: Pointer to a path_search_record structure where the search
+ *                   results will be stored.
+ *
+ * Searches for a file or directory in the file system. If found, the function
+ * returns the inode number of the file or directory and fills the
+ * 'searched_record' structure with the details of the search, including the
+ * parent directory and the type of file found. If the file or directory is not
+ * found, the function returns -1.
+ */
+static int search_file(const char *pathname,
+                       struct path_search_record *searched_record) {
+  /** target file is root directory, so no searching process  */
+  if (!strcmp(pathname, "/") || !strcmp(pathname, "/.") ||
+      !strcmp(pathname, "/..")) {
+    searched_record->searched_path[0] = 0;
+    searched_record->parent_dir = &root_dir;
+    searched_record->file_type = FT_DIRECTORY;
+    /* root_dir._inode->i_NO is 0  */
+    return 0;
+  }
+  uint32_t path_len = strlen(pathname);
+  ASSERT(pathname[0] == '/' && path_len > 1 && path_len < MAX_PATH_LEN);
+
+  char *sub_path = (char *)pathname;
+  char name_buf[MAX_FILE_NAME_LEN] = {0};
+  /* Search from root directory  */
+  struct dir *parent_dir = &root_dir;
+  searched_record->parent_dir = parent_dir;
+  struct dir_entry dir_e;
+  searched_record->file_type = FT_UNKNOWN;
+  uint32_t parent_inode_NO = 0;
+
+  /* Get the top directory in the path */
+  sub_path = path_parse(sub_path, name_buf);
+
+  while (*name_buf) {
+    ASSERT(strlen(searched_record->searched_path) < 512);
+    strcat(searched_record->searched_path, "/");
+    strcat(searched_record->searched_path, name_buf);
+
+    /* search file (stored in name_buf) in directory (parent_dir) by invoking
+     * function search_dir_entry, which defined in file dir.c. the corresponding
+     * dir entry store in dir_e */
+    if (search_dir_entry(cur_part, parent_dir, name_buf, &dir_e)) {
+      memset(name_buf, 0, 0);
+      if (sub_path) {
+        /* go on parsing */
+        sub_path = path_parse(sub_path, name_buf);
+      }
+
+      if (dir_e.f_type == FT_DIRECTORY) {
+        parent_inode_NO = parent_dir->_inode->i_NO;
+        dir_close(parent_dir);
+        /* update parent_dir  */
+        parent_dir = dir_open(cur_part, dir_e.i_NO);
+        searched_record->parent_dir = parent_dir;
+      } else if (dir_e.f_type == FT_REGULAR) {
+        /* I found you !  */
+        searched_record->file_type = FT_REGULAR;
+        return dir_e.i_NO;
+      }
+    } else {
+      /* Target directory entry not found in current file  */
+      return -1;
+    }
+  }
+  dir_close(searched_record->parent_dir);
+  searched_record->parent_dir = dir_open(cur_part, parent_inode_NO);
+  searched_record->file_type = FT_DIRECTORY;
+  return dir_e.i_NO;
+}
+
+int32_t sys_open(const char *pathname, uint8_t flag) {
+  if (pathname[strlen(pathname) - 1] == '/') {
+    printk("sys_open: Can't open a directory %s\n", pathname);
+    return -1;
+  }
+  ASSERT(flag < 0b1000);
+  int32_t fd = -1;
+
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+
+  uint32_t pathname_depth = path_depth_cnt((char *)pathname);
+
+  int inode_NO = search_file(pathname, &searched_record);
+  bool found = inode_NO != -1 ? true : false;
+
+  if (searched_record.file_type == FT_DIRECTORY) {
+    printk(
+        "sys_open: Can't open a directory with open(), user opendir instead\n");
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  uint32_t path_searched_depth = path_depth_cnt(searched_record.searched_path);
+  if (path_searched_depth != pathname_depth) {
+    printk(
+        "sys_open: Cannot access %s: Not a directory, subpath %s is't exist\n",
+        pathname, searched_record.searched_path);
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  if (!found && !(flag & O_CREAT)) {
+    printk("sys_open: In path %s,file %s is't exist\n",
+           searched_record.searched_path,
+           (strrchr(searched_record.searched_path, '/') + 1));
+    dir_close(searched_record.parent_dir);
+    return -1;
+  } else if (found && flag & O_CREAT) {
+    printk("%s has already exist!\n", pathname);
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  switch (flag & O_CREAT) {
+  case O_CREAT:
+    printk("creating file\n");
+    fd = file_create(searched_record.parent_dir, (strrchr(pathname, '/') + 1),
+                     flag);
+    dir_close(searched_record.parent_dir);
+  }
+  return fd;
 }

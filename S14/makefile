@@ -22,7 +22,7 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o  \
 		 $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/io_queue.o $(BUILD_DIR)/tss.o \
 		 $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall_init.o $(BUILD_DIR)/syscall.o \
 		 $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio_kernel.o $(BUILD_DIR)/ide.o \
-		 $(BUILD_DIR)/fs.o
+		 $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o \
 
 ################## compile C program ##################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h
@@ -108,6 +108,18 @@ $(BUILD_DIR)/stdio_kernel.o: lib/kernel/stdio_kernel.c lib/kernel/stdio_kernel.h
 $(BUILD_DIR)/ide.o: device/ide.c device/ide.h device/timer.h lib/stdint.h kernel/debug.h kernel/global.h \
 	kernel/interrupt.h kernel/memory.h lib/kernel/io.h lib/kernel/list.h  lib/kernel/stdio_kernel.h \
   thread/sync.h lib/string.h lib/stdio.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/inode.o: fs/inode.c fs/inode.h fs/super_block.h kernel/debug.h kernel/interrupt.h kernel/memory.h device/ide.h\
+	lib/stdint.h lib/string.h thread/thread.h lib/kernel/list.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/dir.o: fs/dir.c fs/dir.h fs/super_block.h fs/inode.h fs/file.h lib/kernel/bitmap.h kernel/debug.h kernel/global.h\
+	lib/stdint.h lib/string.h kernel/memory.h lib/kernel/stdio_kernel.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/file.o: fs/file.c fs/file.h fs/super_block.h fs/fs.h fs/dir.h fs/inode.h device/ide.h lib/kernel/bitmap.h lib/stdint.h \
+	lib/string.h kernel/global.h kernel/memory.h thread/thread.h lib/kernel/stdio_kernel.h lib/kernel/list.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/stdint.h lib/string.h lib/kernel/stdio_kernel.h kernel/memory.h kernel/global.h kernel/debug.h

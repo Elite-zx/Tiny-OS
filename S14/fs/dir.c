@@ -162,6 +162,20 @@ void create_dir_entry(char *filename, uint32_t inode_NO, uint8_t file_type,
   p_de->f_type = file_type;
 }
 
+/**
+ * sync_dir_entry() - Write a directory entry to a parent directory.
+ * @parent_dir: Pointer to the parent directory where the entry is to be
+ * written.
+ * @p_de: Pointer to the directory entry to be written.
+ * @io_buf: Buffer provided by the caller for I/O operations.
+ *
+ * Writes the directory entry 'p_de' to the specified parent directory
+ * 'parent_dir'. The function looks for an empty slot in the directory to place
+ * the new entry. If necessary, it allocates a new block to store the entry if
+ * the existing blocks are full. The function handles both direct and indirect
+ * blocks of the directory. It returns true if the directory entry is
+ * successfully written, otherwise false.
+ */
 bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de,
                     void *io_buf) {
   struct inode *dir_inode = parent_dir->_inode;
@@ -183,7 +197,7 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de,
 
   int32_t block_bitmap_idx = -1;
 
-  /** find free slot in parent directory to place the directory entry de*/
+  /**** find free slot in parent directory to place the directory entry de ****/
   block_idx = 0;
   while (block_idx < 140) {
     block_bitmap_idx = -1;
@@ -200,7 +214,7 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de,
       ASSERT(block_bitmap_idx != -1);
       bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
 
-      /** update i_blocks info (block pointer) for inode  */
+      /**** update i_blocks info (block pointer) for inode  ****/
       block_bitmap_idx = -1;
       if (block_idx < 12) {
         /* the allocated block is a direct block  */
