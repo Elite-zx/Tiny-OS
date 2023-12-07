@@ -61,8 +61,8 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
     printk("part I mounted:\n");
-    printk("  magic: 0x%x\n  root_dir_LBA/root_dir_LBA: 0x%x\n",
-           _sup_b_buf->magic, _sup_b_buf->data_start_LBA);
+    printk("  name: %s\n  root_dir_LBA: 0x%x\n", cur_part->name,
+           cur_part->sup_b->data_start_LBA);
 
     /*****************************************************************  */
     /* read free blocks bitmap from disk to memory */
@@ -262,7 +262,7 @@ static void partition_format(struct disk *_hd, struct partition *part) {
   de->f_type = FT_DIRECTORY;
   de->i_NO = 0;
 
-  ide_write(hd, _sup_b.inode_table_LBA, buf, 1);
+  ide_write(hd, _sup_b.data_start_LBA, buf, 1);
 
   printk("  root_dir_LBA:0x%x\n", _sup_b.data_start_LBA);
   printk("  %s format done\n", part->name);
