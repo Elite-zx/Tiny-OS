@@ -3,6 +3,7 @@
  * Time: 2023-12-04
  */
 #include "fs.h"
+#include "console.h"
 #include "debug.h"
 #include "dir.h"
 #include "file.h"
@@ -61,8 +62,9 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
     printk("part I mounted:\n");
-    printk("  name: %s\n  root_dir_LBA: 0x%x\n", cur_part->name,
-           cur_part->sup_b->data_start_LBA);
+    printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n",
+           cur_part->name, cur_part->sup_b->data_start_LBA,
+           cur_part->sup_b->inode_table_LBA);
 
     /*****************************************************************  */
     /* read free blocks bitmap from disk to memory */
@@ -460,6 +462,23 @@ static int search_file(const char *pathname,
   return dir_e.i_NO;
 }
 
+/**
+ * sys_open() - Open or create a file.
+ * @pathname: Path of the file to be opened.
+ * @flags: Flags specifying the file access mode and other settings.
+ *
+ * If the file specified by pathname exists, the function opens it with
+ * the access mode specified in flags. If the file does not exist and
+ * O_CREAT flag is specified, the file is created. This function can't
+ * be used to open directories. For directories, opendir() should be used.
+ *
+ * The function returns a file descriptor on success, and -1 on failure.
+ *
+ * Context: Works within the context of the calling process. Handles path
+ *          traversal and checks if the file or directory exists at the given
+ * path.
+ * Return: File descriptor on success, -1 on failure.
+ */
 int32_t sys_open(const char *pathname, uint8_t flag) {
   if (pathname[strlen(pathname) - 1] == '/') {
     printk("sys_open: Can't open a directory %s\n", pathname);
@@ -506,10 +525,125 @@ int32_t sys_open(const char *pathname, uint8_t flag) {
 
   switch (flag & O_CREAT) {
   case O_CREAT:
+    /* file does not exists  */
     printk("creating file\n");
     fd = file_create(searched_record.parent_dir, (strrchr(pathname, '/') + 1),
                      flag);
     dir_close(searched_record.parent_dir);
+  default:
+    /* file exists  */
+    fd = file_open(inode_NO, flag);
   }
   return fd;
+}
+
+/**
+ * fd_local_2_global() - Convert a local file descriptor to a global file table
+ * index.
+ * @local_fd: The local file descriptor.
+ *
+ * Converts a file descriptor that is local to the current process (such as
+ * those obtained from sys_open) into a global file descriptor index used in the
+ * system-wide file table. This function is used to map the process's own file
+ * descriptor space to the global file descriptor space, allowing the system to
+ * reference the correct file structure in the global file table.
+ *
+ * It's important to ensure that the local file descriptor is valid and
+ * currently in use by the process. The function asserts that the global file
+ * descriptor index is within the valid range of the file table.
+ *
+ * Context: Should be called within the context of the process that owns the
+ * local file descriptor.
+ * Return: The global file table index corresponding to
+ * the local file descriptor.
+ */
+static uint32_t fd_local_2_global(uint32_t local_fd_idx) {
+  struct task_struct *cur = running_thread();
+  int32_t global_fd_idx = cur->fd_table[local_fd_idx];
+  ASSERT(global_fd_idx >= 0 && global_fd_idx < MAX_FILES_OPEN);
+  return (uint32_t)global_fd_idx;
+}
+
+/**
+ * sys_close() - Close a file.
+ * @fd: The file descriptor of the file to be closed.
+ *
+ * Closes the file associated with the file descriptor fd. This function
+ * is intended to be called for file descriptors that refer to files,
+ * not directories. The file descriptor fd is removed from the calling
+ * process's file descriptor table and is made available for future
+ * sys_open calls.
+ *
+ * This function does not work for standard input, output, and error
+ * (file descriptors 0, 1, and 2). Attempts to close these file descriptors
+ * will have no effect and the function will return -1.
+ *
+ * The function returns 0 on successful closing of the file, and -1 on failure.
+ *
+ * Context: Works within the context of the calling process. Closes the file
+ *          if it's currently opened by the process.
+ * Return: 0 on success, -1 on failure.
+ */
+int32_t sys_close(int32_t fd) {
+  int32_t ret = -1;
+  if (fd > 2) {
+    uint32_t _fd = fd_local_2_global(fd);
+    ret = file_close(&file_table[_fd]);
+    running_thread()->fd_table[fd] = -1;
+  }
+  return ret;
+}
+
+/**
+ * sys_write() - Write data to a file or standard output.
+ * @fd: File descriptor of the file or standard output.
+ * @buf: Buffer containing the data to be written.
+ * @count: Number of bytes to write.
+ *
+ * Writes 'count' bytes of data from 'buf' to the file associated with 'fd'.
+ * If 'fd' is a standard output file descriptor (STDOUT_NO), the function
+ * writes data to the console. Otherwise, it writes to the file specified
+ * by 'fd'. This function handles writing to files with write permissions,
+ * and it ensures that the file is open in a mode that allows writing
+ * (O_WRONLY or O_RDWR).
+ *
+ * Return: Number of bytes written on success, or -1 on failure.
+ *         For STDOUT_NO, always returns the 'count' of bytes.
+ *
+ * Note: 'fd' should be a valid file descriptor. If 'fd' is negative or
+ *       if the file is not open in a suitable mode for writing, the
+ *       function returns -1.
+ */
+uint32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
+  if (fd < 0) {
+    printk("sys_write: fd error\n");
+    return -1;
+  }
+
+  if (fd == STDOUT_NO) {
+    char io_buf[1024] = {0};
+    memcpy(io_buf, buf, count);
+    console_put_str(io_buf);
+    return count;
+  }
+
+  uint32_t _fd = fd_local_2_global(fd);
+  struct file *wr_file = &file_table[_fd];
+  if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
+    uint32_t bytes_written = file_write(wr_file, buf, count);
+    return bytes_written;
+  } else {
+    console_put_str("sys_write: not allowed to write file without flag "
+                    "O_WRONLY or O_RDWR\n");
+    return -1;
+  }
+}
+int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
+  if (fd < 0) {
+    printk("sys_write: fd error\n");
+    return -1;
+  }
+  ASSERT(buf != NULL);
+  uint32_t _fd = fd_local_2_global(fd);
+  return file_read(&file_table[_fd], buf, count);
 }

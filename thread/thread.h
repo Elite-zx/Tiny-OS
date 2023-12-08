@@ -101,6 +101,7 @@ struct task_struct {
   uint32_t elapsed_ticks;
 
   uint32_t fd_table[MAX_FILES_OPEN_PER_PROC];
+
   struct list_elem general_tag;
   struct list_elem all_list_tag;
 

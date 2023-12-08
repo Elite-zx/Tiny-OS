@@ -25,7 +25,9 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o  \
 		 $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o \
 
 ################## compile C program ##################
-$(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h
+$(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h \
+	fs/fs.h lib/user/syscall.h userprog/process.h userprog/syscall_init.h kernel/memory.h \
+	device/io_queue.h  kernel/init.h kernel/debug.h device/keyboard.h lib/stdio.h kernel/interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/init.o: kernel/init.c kernel/init.h kernel/interrupt.h kernel/global.h \
@@ -95,7 +97,7 @@ $(BUILD_DIR)/syscall.o: lib/user/syscall.c lib/user/syscall.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/syscall_init.o: userprog/syscall_init.c userprog/syscall_init.h lib/stdint.h \
-	lib/kernel/print.h lib/user/syscall.h thread/thread.h
+	lib/kernel/print.h lib/user/syscall.h thread/thread.h fs/fs.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/stdio.o: lib/stdio.c lib/stdio.h lib/stdint.h lib/string.h

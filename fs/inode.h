@@ -31,6 +31,7 @@ struct inode {
 
   uint32_t i_blocks[13];
   struct list_elem inode_tag;
+  
 };
 
 void inode_close(struct inode *inode);

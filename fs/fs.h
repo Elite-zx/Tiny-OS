@@ -18,7 +18,7 @@
 enum file_types { FT_UNKNOWN, FT_REGULAR, FT_DIRECTORY };
 
 enum oflags {
-  O_RONLY = 0b000,
+  O_RDONLY = 0b000,
   O_WRONLY = 0b001,
   O_RDWR = 0b010,
   O_CREAT = 0b0100
@@ -46,5 +46,8 @@ struct path_search_record {
 
 void filesys_init();
 int32_t sys_open(const char *pathname, uint8_t flag);
+int32_t sys_close(int32_t fd);
+uint32_t sys_write(int32_t fd, const void *buf, uint32_t count);
+int32_t sys_read(int32_t fd, void *buf, uint32_t count);
 
 #endif

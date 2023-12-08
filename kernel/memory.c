@@ -9,10 +9,10 @@
 #include "interrupt.h"
 #include "list.h"
 #include "print.h"
+#include "stdint.h"
 #include "string.h"
 #include "sync.h"
 #include "thread.h"
-#include <stdint.h>
 
 /* virtual address for kernel bitmap  */
 #define MEM_BITMAP_BASE 0xc009a000

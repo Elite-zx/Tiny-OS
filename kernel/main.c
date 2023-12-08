@@ -12,10 +12,12 @@
 #include "memory.h"
 #include "print.h"
 #include "process.h"
+#include "stdint.h"
 #include "stdio.h"
 #include "syscall.h"
 #include "syscall_init.h"
 #include "thread.h"
+#include <string.h>
 
 void kthread_a(void *arg);
 void kthread_b(void *arg);
@@ -31,8 +33,29 @@ int main() {
   process_execute(u_prog_b, "u_prog_b");
   thread_start("kthread_a", 31, kthread_a, "I am thread a");
   thread_start("kthread_b", 31, kthread_b, "I am thread b");
-  sys_open("/file1", O_CREAT);
 
+  uint32_t fd = sys_open("/file1", O_RDWR);
+  printf("open /file1, fd:%d\n", fd);
+  char buf[64] = {0};
+  int read_bytes = sys_read(fd, buf, 18);
+  printf("1 read %d bytes:\n%s\n", read_bytes, buf);
+
+  memset(buf, 0, 64);
+  read_bytes = sys_read(fd, buf, 6);
+  printf("2 read %d bytes:\n%s", read_bytes, buf);
+
+  memset(buf, 0, 64);
+  read_bytes = sys_read(fd, buf, 6);
+  printf("3 read %d bytes:\n%s", read_bytes, buf);
+
+  printf("____________ close file1 and reopen ____________\n");
+  sys_close(fd);
+  fd = sys_open("/file1", O_RDWR);
+  memset(buf, 0, 64);
+  read_bytes = sys_read(fd, buf, 24);
+  printf("4 read %d bytes:\n%s", read_bytes, buf);
+
+  sys_close(fd);
   while (1)
     ;
   return 0;

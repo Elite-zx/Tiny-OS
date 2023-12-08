@@ -4,7 +4,7 @@
  */
 
 #include "syscall.h"
-#include <stdint.h>
+#include "stdint.h"
 
 #define _syscall0(NUMBER)                                                      \
   ({                                                                           \
@@ -44,4 +44,7 @@
   })
 
 uint32_t getpid() { return _syscall0(SYS_GETPID); }
-uint32_t write(char *str) { return _syscall1(SYS_WRITE, str); }
+
+uint32_t write(int32_t fd, const void *buf, uint32_t count) {
+  return _syscall3(SYS_WRITE, fd, buf, count);
+}
