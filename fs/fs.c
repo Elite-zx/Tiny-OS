@@ -530,6 +530,7 @@ int32_t sys_open(const char *pathname, uint8_t flag) {
     fd = file_create(searched_record.parent_dir, (strrchr(pathname, '/') + 1),
                      flag);
     dir_close(searched_record.parent_dir);
+    break;
   default:
     /* file exists  */
     fd = file_open(inode_NO, flag);
@@ -696,11 +697,10 @@ int32_t sys_unlink(const char *pathname) {
     return -1;
   }
 
+  /* check whether the file `pathname` is in the list of open files
+   * (file_table) */
   uint32_t file_idx = 0;
   while (file_idx < MAX_FILES_OPEN) {
-    /* check whether the file `pathname` is in the list of open files
-     * (file_table)
-     */
     if (file_table[file_idx].fd_inode != NULL &&
         (uint32_t)inode_NO == file_table[file_idx].fd_inode->i_NO) {
       break;
@@ -724,9 +724,14 @@ int32_t sys_unlink(const char *pathname) {
   }
 
   struct dir *parent_dir = searched_record.parent_dir;
-  delete_dir_entry(cur_part, parent_dir, inode_NO, io_buf);
+  if (!delete_dir_entry(cur_part, parent_dir, inode_NO, io_buf)) {
+    dir_close(searched_record.parent_dir);
+    printk("delete_dir_entry fialed");
+    return -1;
+  }
+
   inode_release(cur_part, inode_NO);
   sys_free(io_buf);
-  dir_close(parent_dir);
+  dir_close(searched_record.parent_dir);
   return 0;
 }

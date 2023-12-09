@@ -317,7 +317,7 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
       continue;
     }
     dir_entry_idx = dir_entry_cnt = 0;
-    memset(io_buf, 0, BLOCK_SIZE);
+    memset(io_buf, 0, SECTOR_SIZE);
     ide_read(part->which_disk, all_blocks_addr[block_idx], io_buf, 1);
 
     /**** traverse each directory entry in the sector (which is alse a
@@ -354,7 +354,7 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
       uint32_t block_bitmap_idx =
           all_blocks_addr[block_idx] - part->sup_b->data_start_LBA;
       bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
-      bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+      bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
       if (block_idx < 12) {
         dir_inode->i_blocks[block_idx] = 0;
       } else {
@@ -378,7 +378,7 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
           block_bitmap_idx =
               dir_inode->i_blocks[12] - part->sup_b->data_start_LBA;
           bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
-          bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+          bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
           dir_inode->i_blocks[12] = 0;
         }
       }
