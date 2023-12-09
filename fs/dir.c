@@ -62,10 +62,15 @@ struct dir *dir_open(struct partition *part, uint32_t inode_NO) {
  */
 bool search_dir_entry(struct partition *part, struct dir *pdir,
                       const char *name, struct dir_entry *dir_e) {
+
+  /*********************************************************/
+  /* stores the address of all blocks into all_inode_blocks*/
+  /*********************************************************/
+
   /*12 direct blocks + 128 first-level indirect blocks */
   uint32_t inode_blocks_cnt = 12 + (512 / 4);
 
-  /* all_inode_blocks stores the address of all blocks for pdir  */
+  /*  */
   uint32_t *all_inode_blocks = (uint32_t *)sys_malloc(inode_blocks_cnt * 4);
   if (all_inode_blocks == NULL) {
     printk("search_dir_entry: sys_malloc for all_inode_blocks failed");
@@ -277,5 +282,117 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de,
   }
   /** no free slot found in this parent directory file*/
   printk("directory is full!\n");
+  return false;
+}
+
+bool delete_dir_entry(struct partition *part, struct dir *pdir,
+                      uint32_t inode_NO, void *io_buf) {
+  struct inode *dir_inode = pdir->_inode;
+
+  /******** fill all_blocks_addr with the addresses of blocks ********/
+  uint32_t block_idx = 0;
+  uint32_t all_blocks_addr[140] = {0};
+  while (block_idx < 12) {
+    all_blocks_addr[block_idx] = dir_inode->i_blocks[block_idx];
+    block_idx++;
+  }
+  if (dir_inode->i_blocks[12] != 0) {
+    ide_read(part->which_disk, dir_inode->i_blocks[12], all_blocks_addr + 12,
+             1);
+  }
+
+  /******** traverse blocks, find target dir entry ********/
+  uint32_t _dir_entry_size = part->sup_b->dir_entry_size;
+  uint32_t max_dir_entries_per_sector = SECTOR_SIZE / _dir_entry_size;
+  struct dir_entry *dir_entry_base = (struct dir_entry *)io_buf;
+  struct dir_entry *dir_entry_found = NULL;
+  uint8_t dir_entry_idx, dir_entry_cnt;
+  bool is_dir_first_block = false;
+
+  block_idx = 0;
+  while (block_idx < 140) {
+    is_dir_first_block = false;
+    if (all_blocks_addr[block_idx] == 0) {
+      block_idx++;
+      continue;
+    }
+    dir_entry_idx = dir_entry_cnt = 0;
+    memset(io_buf, 0, BLOCK_SIZE);
+    ide_read(part->which_disk, all_blocks_addr[block_idx], io_buf, 1);
+
+    /**** traverse each directory entry in the sector (which is alse a
+     * block)****/
+    while (dir_entry_idx < max_dir_entries_per_sector) {
+      if ((dir_entry_base + dir_entry_idx)->f_type != FT_UNKNOWN) {
+        if (!strcmp((dir_entry_base + dir_entry_idx)->filename, ".")) {
+          /* current block is the first block of pdir*/
+          is_dir_first_block = true;
+        } else if (strcmp((dir_entry_base + dir_entry_idx)->filename, ".") &&
+                   strcmp((dir_entry_base + dir_entry_idx)->filename, "..")) {
+          /* count the number of entries on the current block  */
+          dir_entry_cnt++;
+          if ((dir_entry_base + dir_entry_idx)->i_NO == inode_NO) {
+            /* find target entry by comparing inode number  */
+            ASSERT(dir_entry_found == NULL);
+            dir_entry_found = dir_entry_base + dir_entry_idx;
+          }
+        }
+      }
+      dir_entry_idx++;
+    }
+    if (dir_entry_found == NULL) {
+      /* target dir entry is not found in this block, go to the next block  */
+      block_idx++;
+      continue;
+    }
+    /******** target dir entry found ********/
+    ASSERT(dir_entry_cnt >= 1);
+    if (dir_entry_cnt == 1 && !is_dir_first_block) {
+      /**** this block is not the first block of the directory, and there is
+       * only target dir entry on this sector, so this block needs to be
+       * reclaimed ****/
+      uint32_t block_bitmap_idx =
+          all_blocks_addr[block_idx] - part->sup_b->data_start_LBA;
+      bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
+      bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+      if (block_idx < 12) {
+        dir_inode->i_blocks[block_idx] = 0;
+      } else {
+        /* count the number of indirect blocks  */
+        uint32_t indirect_blocks_cnt = 0;
+        uint32_t indirect_block_idx = 12;
+        while (indirect_block_idx < 140) {
+          if (all_blocks_addr[indirect_block_idx] != 0) {
+            indirect_blocks_cnt++;
+          }
+        }
+        ASSERT(indirect_blocks_cnt >= 1);
+        if (indirect_blocks_cnt > 1) {
+          /* erase the current indirect block address in the first-level
+           * indirect block index table only  */
+          all_blocks_addr[block_idx] = 0;
+          ide_write(part->which_disk, dir_inode->i_blocks[12],
+                    all_blocks_addr + 12, 1);
+        } else {
+          /*erase the first_level indirect block index table */
+          block_bitmap_idx =
+              dir_inode->i_blocks[12] - part->sup_b->data_start_LBA;
+          bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
+          bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+          dir_inode->i_blocks[12] = 0;
+        }
+      }
+    } else {
+      /**** current block exist Multiple directory entries ****/
+      memset(dir_entry_found, 0, _dir_entry_size);
+      ide_write(part->which_disk, all_blocks_addr[block_idx], io_buf, 1);
+    }
+    ASSERT(dir_inode->i_size >= _dir_entry_size);
+    dir_inode->i_size -= _dir_entry_size;
+    memset(io_buf, 0, SECTOR_SIZE * 2);
+    inode_sync(part, dir_inode, io_buf);
+    return true;
+  }
+  /* target dir entry is not found  */
   return false;
 }

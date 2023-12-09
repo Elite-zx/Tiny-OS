@@ -3,7 +3,9 @@
  * Time: 2023-12-05
  */
 #include "inode.h"
+#include "bitmap.h"
 #include "debug.h"
+#include "file.h"
 #include "ide.h"
 #include "interrupt.h"
 #include "list.h"
@@ -207,4 +209,81 @@ void inode_init(uint32_t inode_NO, struct inode *new_inode) {
     new_inode->i_blocks[sector_idx] = 0;
     sector_idx++;
   }
+}
+
+void inode_delete(struct partition *part, uint32_t inode_NO, void *io_buf) {
+  ASSERT(inode_NO < 4096);
+  struct inode_position inode_pos;
+  inode_locate(part, inode_NO, &inode_pos);
+  ASSERT(inode_pos.sector_LBA <= (part->start_LBA + part->sector_cnt));
+
+  char *inode_buf = (char *)io_buf;
+  /******** erase inode ********/
+  if (inode_pos.is_inode_cross_sectors) {
+    ide_read(part->which_disk, inode_pos.sector_LBA, inode_buf, 2);
+    memset((inode_buf + inode_pos.offset_in_sector), 0, sizeof(struct inode));
+    ide_write(part->which_disk, inode_pos.sector_LBA, inode_buf, 2);
+  }
+  {
+    ide_read(part->which_disk, inode_pos.sector_LBA, inode_buf, 1);
+    memset((inode_buf + inode_pos.offset_in_sector), 0, sizeof(struct inode));
+    ide_write(part->which_disk, inode_pos.sector_LBA, inode_buf, 1);
+  }
+}
+
+void inode_release(struct partition *part, uint32_t inode_NO) {
+  struct inode *inode_to_del = inode_open(part, inode_NO);
+  ASSERT(inode_to_del->i_NO == inode_NO);
+
+  uint8_t block_idx = 0;
+
+  /* block_cnt record the number of blocks to be reclaimed  */
+  uint8_t block_cnt = 12;
+
+  uint32_t block_bitmap_idx;
+
+  /* all_blocks_addr stores all the addresses of all blocks for 'part'
+   */
+  uint32_t all_blocks_addr[140] = {0};
+
+  /******** gather addresses of all blocks ********/
+  while (block_idx < 12) {
+    all_blocks_addr[block_idx] = inode_to_del->i_blocks[block_idx];
+    block_idx++;
+  }
+
+  if (inode_to_del->i_blocks[12] != 0) {
+    ide_read(part->which_disk, inode_to_del->i_blocks[12], all_blocks_addr + 12,
+             1);
+    block_cnt += 128;
+
+    /* Reclaim sectors occupied by the first-level indirect block table  */
+    block_bitmap_idx = inode_to_del->i_blocks[12] - part->sup_b->data_start_LBA;
+    ASSERT(block_bitmap_idx > 0);
+    bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
+    bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+  }
+
+  /******** now! erase the blocks, which means reclaim the corresponding free
+   * block bit in inode_bitmap ********/
+  block_idx = 0;
+  while (block_idx < block_cnt) {
+    if (all_blocks_addr[block_idx] != 0) {
+      block_bitmap_idx = 0;
+      block_bitmap_idx =
+          inode_to_del->i_blocks[12] - part->sup_b->data_start_LBA;
+      ASSERT(block_bitmap_idx > 0);
+      bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
+      bitmap_sync(part, block_bitmap_idx, BLOCK_BITMAP);
+    }
+    block_idx++;
+  }
+  /* reclaim the corresponding inode bit in inode_bitmap   */
+  bitmap_set(&part->inode_bitmap, inode_NO, 0);
+  bitmap_sync(part, inode_NO, INODE_BITMAP);
+
+  void *io_buf = sys_malloc(1024);
+  inode_delete(part, inode_NO, io_buf);
+  sys_free(io_buf);
+  inode_close(inode_to_del);
 }

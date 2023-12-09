@@ -647,3 +647,86 @@ int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
   uint32_t _fd = fd_local_2_global(fd);
   return file_read(&file_table[_fd], buf, count);
 }
+
+int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
+  if (fd < 0) {
+    printk("sys_lseek: fd error\n");
+    return -1;
+  }
+
+  ASSERT(whence < 4);
+  uint32_t _fd = fd_local_2_global(fd);
+  struct file *pf = &file_table[_fd];
+  int32_t new_fd_pos = 0;
+  int32_t file_size = pf->fd_inode->i_size;
+  switch (whence) {
+  case SEEK_SET:
+    new_fd_pos = offset;
+    break;
+  case SEEK_CUR:
+    new_fd_pos = (int32_t)pf->fd_pos + offset;
+    break;
+  case SEEK_END:
+    new_fd_pos = file_size + offset;
+  }
+
+  /* beyond the range of file  */
+  if (new_fd_pos < 0 || new_fd_pos > (file_size - 1))
+    return -1;
+
+  pf->fd_pos = new_fd_pos;
+  return pf->fd_pos;
+}
+
+int32_t sys_unlink(const char *pathname) {
+  ASSERT(strlen(pathname) < MAX_FILE_NAME_LEN);
+  /******** search pathname in current partition ********/
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+  int inode_NO = search_file(pathname, &searched_record);
+  ASSERT(inode_NO != 0);
+  if (inode_NO == -1) {
+    printk("file %s not found!\n", pathname);
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+  if (searched_record.file_type == FT_DIRECTORY) {
+    printk("can't delete a directory with unlink() ,use rmdir() instead\n");
+    dir_close(searched_record.parent_dir);
+    return -1;
+  }
+
+  uint32_t file_idx = 0;
+  while (file_idx < MAX_FILES_OPEN) {
+    /* check whether the file `pathname` is in the list of open files
+     * (file_table)
+     */
+    if (file_table[file_idx].fd_inode != NULL &&
+        (uint32_t)inode_NO == file_table[file_idx].fd_inode->i_NO) {
+      break;
+    }
+    file_idx++;
+  }
+  if (file_idx < MAX_FILES_OPEN) {
+    /* the file is open (which means in use) and cannot be deleted  */
+    dir_close(searched_record.parent_dir);
+    printk("file %s is in use, not allow to delete!\n", pathname);
+    return -1;
+  }
+
+  /* the file is not open and can be deleted  */
+  ASSERT(file_idx == MAX_FILES_OPEN);
+  void *io_buf = sys_malloc(SECTOR_SIZE * 2);
+  if (io_buf == NULL) {
+    dir_close(searched_record.parent_dir);
+    printk("sys_unlink: sys_malloc for io_buf failed\n");
+    return -1;
+  }
+
+  struct dir *parent_dir = searched_record.parent_dir;
+  delete_dir_entry(cur_part, parent_dir, inode_NO, io_buf);
+  inode_release(cur_part, inode_NO);
+  sys_free(io_buf);
+  dir_close(parent_dir);
+  return 0;
+}

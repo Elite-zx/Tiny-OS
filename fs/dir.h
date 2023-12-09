@@ -49,5 +49,7 @@ void create_dir_entry(char *filename, uint32_t inode_NO, uint8_t file_type,
                       struct dir_entry *p_de);
 bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de, void *io_buf);
 
-void open_root_dir(struct partition *part) ;
+void open_root_dir(struct partition *part);
+bool delete_dir_entry(struct partition *part, struct dir *pdir,
+                      uint32_t inode_NO, void *io_buf);
 #endif
