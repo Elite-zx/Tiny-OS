@@ -36,41 +36,15 @@ int main() {
   thread_start("kthread_a", 31, kthread_a, "I am thread a");
   thread_start("kthread_b", 31, kthread_b, "I am thread b");
 
-  /** uint32_t fd = sys_open("/file1", O_CREAT); */
-  /** uint32_t fd = sys_open("/file1", O_RDONLY | O_RDWR); */
-  /** sys_write(fd, "hello,world\n", 12); */
-  /** printf("/file1 delete %s!\n", sys_unlink("/file1") == 0 ? "done" :
-   * "fail"); */
-
-  /** sys_close(fd); */
-  /** printk("%d close!\n", fd); */
-
-  /** printf("/dir1/subdir1 create %s!\n", */
-  /**        sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail"); */
-  /** printf("/dir1 create %s!\n", sys_mkdir("/dir1") == 0 ? "done" : "fail");
-   */
-  /** printf("now, /dir1/subdir1 create %s!\n", */
-  /**        sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail"); */
-  /** int fd = sys_open("/dir1/subdir1/file2", O_CREAT | O_RDWR); */
-  /** if (fd != -1) { */
-  /**   printf("/dir1/subdir1/file2 create done!\n"); */
-  /**   sys_write(fd, "Pied Piper in Silicon Valley\n", 29); */
-  /**   sys_lseek(fd, 0, SEEK_SET); */
-  /**   char buf[32] = {0}; */
-  /**   sys_read(fd, buf, 29); */
-  /**   printf("/dir1/subdir1/file2 says: \n%s", buf); */
-  /**   sys_close(fd); */
-  /** } */
-
-  char cwd_buf[32] = {0};
-  sys_getcwd(cwd_buf, 32);
-  printf("current working directory is %s\n", cwd_buf);
-
-  sys_chdir("/dir1");
-  printf("changing current working directory now!\n");
-  sys_getcwd(cwd_buf, 32);
-  printf("current working directory is %s\n", cwd_buf);
-
+  struct stat obj_stat;
+  sys_stat("/", &obj_stat);
+  printf("/'s info\n  i_no:%d\n  size:%d\n  file_type:%s\n", obj_stat.st_ino,
+         obj_stat.st_size,
+         obj_stat.st_filetype == FT_DIRECTORY ? "directory" : "regular");
+  sys_stat("/dir1", &obj_stat);
+  printf("/dir1's info\n  i_no:%d\n  size:%d\n  file_type:%s\n  ",
+         obj_stat.st_ino, obj_stat.st_size,
+         obj_stat.st_filetype == FT_DIRECTORY ? "directory" : "regular");
   while (1)
     ;
   return 0;

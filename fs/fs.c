@@ -1058,3 +1058,30 @@ int32_t sys_chdir(const char *path) {
   dir_close(searched_record.parent_dir);
   return ret;
 }
+
+int32_t sys_stat(const char *path, struct stat *buf) {
+  if (!strcmp(path, "/") || !strcmp(path, "/.") || !strcmp(path, "/..")) {
+    buf->st_filetype = FT_DIRECTORY;
+    buf->st_ino = 0;
+    buf->st_size = root_dir._inode->i_size;
+    return 0;
+  }
+
+  int32_t ret_val = -1;
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+  int inode_NO = search_file(path, &searched_record);
+  /* target file exists  */
+  if (inode_NO != -1) {
+    struct inode *target_inode = inode_open(cur_part, inode_NO);
+    buf->st_size = target_inode->i_size;
+    buf->st_filetype = searched_record.file_type;
+    buf->st_ino = inode_NO;
+    inode_close(target_inode);
+    ret_val = 0;
+  } else {
+    printk("sys_stat: %s not found\n", path);
+  }
+  dir_close(searched_record.parent_dir);
+  return ret_val;
+}
