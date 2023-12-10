@@ -133,7 +133,7 @@ void bitmap_sync(struct partition *part, uint32_t bit_idx, uint8_t btmp_flag) {
     break;
   case BLOCK_BITMAP:
     sector_LBA = part->sup_b->free_blocks_bitmap_LBA + bit_offset_in_sector;
-    bitmap_offset = part->inode_bitmap.bits + bit_offset_in_byte;
+    bitmap_offset = part->block_bitmap.bits + bit_offset_in_byte;
     break;
   }
   ide_write(part->which_disk, sector_LBA, bitmap_offset, 1);

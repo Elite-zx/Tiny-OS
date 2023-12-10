@@ -325,7 +325,7 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
     while (dir_entry_idx < max_dir_entries_per_sector) {
       if ((dir_entry_base + dir_entry_idx)->f_type != FT_UNKNOWN) {
         if (!strcmp((dir_entry_base + dir_entry_idx)->filename, ".")) {
-          /* current block is the first block of pdir*/
+          /* current block is the first block of pdir */
           is_dir_first_block = true;
         } else if (strcmp((dir_entry_base + dir_entry_idx)->filename, ".") &&
                    strcmp((dir_entry_base + dir_entry_idx)->filename, "..")) {
@@ -355,6 +355,7 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
           all_blocks_addr[block_idx] - part->sup_b->data_start_LBA;
       bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
       bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+
       if (block_idx < 12) {
         dir_inode->i_blocks[block_idx] = 0;
       } else {

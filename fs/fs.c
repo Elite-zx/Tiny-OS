@@ -62,9 +62,11 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
     printk("part I mounted:\n");
-    printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n",
+    printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n  "
+           "inode_bitmap_LBA: 0x%x\n  free_blocks_bitmap_LBA: 0x%x\n",
            cur_part->name, cur_part->sup_b->data_start_LBA,
-           cur_part->sup_b->inode_table_LBA);
+           cur_part->sup_b->inode_table_LBA, cur_part->sup_b->inode_bitmap_LBA,
+           cur_part->sup_b->free_blocks_bitmap_LBA);
 
     /*****************************************************************  */
     /* read free blocks bitmap from disk to memory */
@@ -724,11 +726,7 @@ int32_t sys_unlink(const char *pathname) {
   }
 
   struct dir *parent_dir = searched_record.parent_dir;
-  if (!delete_dir_entry(cur_part, parent_dir, inode_NO, io_buf)) {
-    dir_close(searched_record.parent_dir);
-    printk("delete_dir_entry fialed");
-    return -1;
-  }
+  delete_dir_entry(cur_part, parent_dir, inode_NO, io_buf);
 
   inode_release(cur_part, inode_NO);
   sys_free(io_buf);
