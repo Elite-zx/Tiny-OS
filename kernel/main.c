@@ -62,63 +62,14 @@ int main() {
   /**   sys_close(fd); */
   /** } */
 
-  printf("/dir1 content before delete /dir1/subdir1:\n");
-  struct dir *pdir = sys_opendir("/dir1/subdir1");
-  if (pdir) {
-    char *type = NULL;
-    struct dir_entry *dir_iter = NULL;
+  char cwd_buf[32] = {0};
+  sys_getcwd(cwd_buf, 32);
+  printf("current working directory is %s\n", cwd_buf);
 
-    while ((dir_iter = sys_readdir(pdir))) {
-      if (dir_iter->f_type == FT_REGULAR) {
-        type = "regular";
-      } else {
-        type = "directory";
-      }
-      printf("    %s  %s\n", type, dir_iter->filename);
-    }
-
-    /******** test sys_rmdir ********/
-    printf("try to delete nonempty directory /dir1/subdir1\n");
-    if (sys_rmdir("/dir1/subdir1") == -1) {
-      printf("sys_rmdir: /dir1/subdir1 delete fail!\n");
-    }
-
-    printf("try to delete /dir1/subdir1/file2\n");
-    if (sys_rmdir("/dir1/subdir1/file2") == -1) {
-      printf("sys_rmdir: /dir1/subdir1/file2 delete fail!\n");
-    }
-
-    if (sys_unlink("/dir1/subdir1/file2") == 0) {
-      printf("sys_unlink: /dir1/subdir1/file2 delete done!\n");
-    }
-
-    printf(
-        "after deleting file2, try to delete directory /dir1/subdir1 again:\n");
-    if (sys_rmdir("/dir1/subdir1") == 0) {
-      printf("sys_rmdir: /dir1/subdir1 delete done!\n");
-    }
-
-    printf("/dir1 content after delete /dir1/subdir1:\n");
-    sys_rewinddir(pdir);
-
-    while ((dir_iter = sys_readdir(pdir))) {
-      if (dir_iter->f_type == FT_REGULAR) {
-        type = "regular";
-      } else {
-        type = "directory";
-      }
-      printf("    %s  %s\n", type, dir_iter->filename);
-    }
-
-    if (sys_closedir(pdir) == 0) {
-      printf("/dir1/subdir1 close done!\n");
-    } else {
-      printf("/dir1/subdir1 close fail!\n");
-    }
-
-  } else {
-    printk("/dir1/subdir1 open fail!\n");
-  }
+  sys_chdir("/dir1");
+  printf("changing current working directory now!\n");
+  sys_getcwd(cwd_buf, 32);
+  printf("current working directory is %s\n", cwd_buf);
 
   while (1)
     ;
@@ -144,4 +95,3 @@ void u_prog_b(void) {
   while (1)
     ;
 }
-

@@ -18,6 +18,7 @@
 #include "string.h"
 #include "super_block.h"
 #include "thread.h"
+#include <stdio.h>
 
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[2];
@@ -942,6 +943,7 @@ static uint32_t get_parent_dir_inode_NO(uint32_t child_dir_inode_NO,
   struct dir_entry *dir_entry_iter = (struct dir_entry *)io_buf;
   ASSERT(dir_entry_iter->i_NO < 4096 &&
          dir_entry_iter[1].f_type == FT_DIRECTORY);
+
   return dir_entry_iter[1].i_NO;
 }
 
@@ -954,9 +956,11 @@ static int get_child_dir_name(uint32_t p_inode_NO, uint32_t c_inode_NO,
   uint32_t all_blocks_addr[140], block_cnt = 12;
   while (block_idx < 12) {
     all_blocks_addr[block_idx] = parent_dir_inode->i_blocks[block_idx];
+    block_idx++;
   }
+
   if (parent_dir_inode->i_blocks[12] != 0) {
-    ide_read(cur_part->which_disk, parent_dir_inode->i_blocks[block_idx],
+    ide_read(cur_part->which_disk, parent_dir_inode->i_blocks[12],
              all_blocks_addr + 12, 1);
     block_cnt += 128;
   }
@@ -1002,26 +1006,31 @@ char *sys_getcwd(char *buf, uint32_t size) {
   ASSERT(child_dir_inode_NO >= 0 && child_dir_inode_NO < 4096);
 
   if (child_dir_inode_NO == 0) {
+    /* cwd is root directory, do nothing */
     buf[0] = '/';
-    buf[1] = 1;
+    buf[1] = 0;
     return buf;
   }
+
   memset(buf, 0, size);
   char full_path_reverse[MAX_PATH_LEN] = {0};
 
   /******** find the parent directory layer by layer from bottom to top
    * ********/
   while (((child_dir_inode_NO != 0))) {
+    /**** Get the directory name of the directory where the file is located
+     * ****/
     parent_inode_NO = get_parent_dir_inode_NO(child_dir_inode_NO, io_buf);
     if (get_child_dir_name(parent_inode_NO, child_dir_inode_NO,
                            full_path_reverse, io_buf) == -1) {
+      /* the name of directory is not found  */
       sys_free(io_buf);
       return NULL;
     }
     child_dir_inode_NO = parent_inode_NO;
   }
 
-  /******** reverse the full path ********/
+  /******** reverse the full path, store the result in buf ********/
   ASSERT(strlen(full_path_reverse) <= size);
   char *last_slash;
   while (((last_slash = strrchr(full_path_reverse, '/')))) {
