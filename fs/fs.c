@@ -645,6 +645,20 @@ uint32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
     return -1;
   }
 }
+
+/**
+ * sys_read() - Reads data from a file.
+ * @fd: File descriptor of the file to read from.
+ * @buf: Buffer to store the read data.
+ * @count: Number of bytes to read.
+ *
+ * This function reads 'count' bytes of data from the file identified by 'fd'
+ * into the buffer 'buf'. It handles the conversion of the local file descriptor
+ * to a global file table index and delegates the reading operation to the
+ * file_read function.
+ *
+ * Return: The number of bytes successfully read, or -1 if an error occurred.
+ */
 int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
   if (fd < 0) {
     printk("sys_write: fd error\n");
@@ -655,6 +669,20 @@ int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
   return file_read(&file_table[_fd], buf, count);
 }
 
+/**
+ * sys_lseek() - Changes the file offset for read/write operations.
+ * @fd: File descriptor of the file.
+ * @offset: The new offset based on the 'whence' parameter.
+ * @whence: Position used as reference for the offset (SEEK_SET, SEEK_CUR,
+ * SEEK_END).
+ *
+ * This function adjusts the file offset for the file represented by 'fd'.
+ * The new position is calculated based on 'offset' and 'whence'. SEEK_SET sets
+ * the offset relative to the start of the file, SEEK_CUR sets it relative to
+ * the current position, and SEEK_END sets it relative to the end of the file.
+ *
+ * Return: The new file offset on success, or -1 if an error occurred.
+ */
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
   if (fd < 0) {
     printk("sys_lseek: fd error\n");
@@ -685,6 +713,19 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
   return pf->fd_pos;
 }
 
+/**
+ * sys_unlink() - Deletes a file from the filesystem.
+ * @pathname: Path to the file to be deleted.
+ *
+ * This function deletes the file specified by 'pathname'. It first checks if
+ * the file exists and is not a directory. The function then removes the
+ * directory entry corresponding to the file and releases its inode. If the file
+ * is currently open, the deletion will fail.
+ *
+ * Note: Directories cannot be deleted with this function.
+ *
+ * Return: 0 on successful deletion, -1 on failure.
+ */
 int32_t sys_unlink(const char *pathname) {
   ASSERT(strlen(pathname) < MAX_PATH_LEN);
   /******** search pathname in current partition ********/
@@ -738,6 +779,18 @@ int32_t sys_unlink(const char *pathname) {
   return 0;
 }
 
+/**
+ * sys_mkdir() - Creates a new directory.
+ * @pathname: Path where the new directory will be created.
+ *
+ * This function creates a new directory in the filesystem at the specified
+ * 'pathname'. It handles various checks such as the existence of the directory,
+ * allocation of an inode for the new directory, creation of '.' and '..'
+ * entries, and updates parent directory's inode and directory entries.
+ *
+ * Return: 0 on success, -1 on failure.
+ * Rollback mechanism in place to undo actions in case of failure at any step.
+ */
 int32_t sys_mkdir(const char *pathname) {
   uint32_t rollback_action = 0;
 
@@ -846,6 +899,16 @@ rollback:
   return -1;
 }
 
+/**
+ * sys_opendir() - Opens a directory.
+ * @name: Path of the directory to open.
+ *
+ * Opens a directory for reading its contents. This function checks if the
+ * directory exists and is not a regular file. It then returns a directory
+ * structure which can be used to read the directory entries.
+ *
+ * Return: Pointer to the directory structure if successful, NULL if failed.
+ */
 struct dir *sys_opendir(const char *name) {
   ASSERT(strlen(name) < MAX_PATH_LEN);
 
@@ -878,6 +941,15 @@ struct dir *sys_opendir(const char *name) {
   return target_dir_ptr;
 }
 
+/**
+ * sys_closedir() - Closes an open directory.
+ * @dir: Pointer to the directory structure.
+ *
+ * Closes a directory that was previously opened by sys_opendir. This involves
+ * freeing up resources associated with the directory structure.
+ *
+ * Return: 0 on successful close, -1 if an error occurred or if 'dir' is NULL.
+ */
 int32_t sys_closedir(struct dir *dir) {
   int32_t ret = -1;
   if (dir != NULL) {
@@ -887,13 +959,42 @@ int32_t sys_closedir(struct dir *dir) {
   return ret;
 }
 
+/**
+ * sys_readdir() - Reads a directory entry from a directory.
+ * @dir: The directory from which to read the entry.
+ *
+ * Reads and returns the next directory entry from the directory specified by
+ * 'dir'. The reading position is maintained internally in the directory's
+ * dir_pos field. When the end of the directory is reached or in case of an
+ * error, NULL is returned.
+ *
+ * Return: Pointer to the next directory entry on success, NULL at the end of
+ * the directory or on error.
+ */
 struct dir_entry *sys_readdir(struct dir *dir) {
   ASSERT(dir != NULL);
   return dir_read(dir);
 }
 
+/**
+ * sys_rewinddir() - Resets the directory pointer.
+ * @dir: Pointer to the directory.
+ *
+ * This function resets the directory's pointer (dir_pos) to 0,
+ * which means the next read from the directory will start from the beginning.
+ */
 void sys_rewinddir(struct dir *dir) { dir->dir_pos = 0; }
 
+/**
+ * sys_rmdir() - Removes an empty directory.
+ * @pathname: Path of the directory to be removed.
+ *
+ * Removes a directory specified by 'pathname'. The directory must be empty
+ * and not in use. This function handles the deletion of the directory's
+ * inode and its entry in the parent directory.
+ *
+ * Return: 0 on success, -1 on failure.
+ */
 int32_t sys_rmdir(const char *pathname) {
   struct path_search_record searched_record;
   memset(&searched_record, 0, sizeof(struct path_search_record));
@@ -928,6 +1029,16 @@ int32_t sys_rmdir(const char *pathname) {
   return ret_val;
 }
 
+/**
+ * get_parent_dir_inode_nr() - Gets the inode number of the parent directory.
+ * @child_inode_nr: Inode number of the child directory.
+ * @io_buf: Buffer for reading data from the disk.
+ *
+ * Reads the ".." entry in the child directory to get the inode number of
+ * its parent directory.
+ *
+ * Return: Inode number of the parent directory.
+ */
 static uint32_t get_parent_dir_inode_NO(uint32_t child_dir_inode_NO,
                                         void *io_buf) {
   /******** get parent directory inode number from the directory entry
@@ -947,6 +1058,19 @@ static uint32_t get_parent_dir_inode_NO(uint32_t child_dir_inode_NO,
   return dir_entry_iter[1].i_NO;
 }
 
+/**
+ * get_child_dir_name() - Finds the name of a child directory in a parent
+ * directory.
+ * @p_inode_nr: Inode number of the parent directory.
+ * @c_inode_nr: Inode number of the child directory.
+ * @path: Buffer to store the name of the child directory.
+ * @io_buf: Buffer for disk IO operations.
+ *
+ * Searches the parent directory to find the entry of the child directory and
+ * retrieves its name.
+ *
+ * Return: 0 on success, -1 on failure.
+ */
 static int get_child_dir_name(uint32_t p_inode_NO, uint32_t c_inode_NO,
                               char *path, void *io_buf) {
   struct inode *parent_dir_inode = inode_open(cur_part, p_inode_NO);
@@ -994,6 +1118,19 @@ static int get_child_dir_name(uint32_t p_inode_NO, uint32_t c_inode_NO,
   return -1;
 }
 
+/**
+ * sys_getcwd() - Gets the current working directory.
+ * @buf: Buffer where the absolute path of the current working directory will be
+ * stored.
+ * @size: Size of the buffer 'buf'.
+ *
+ * Writes the absolute path of the current working directory to 'buf'.
+ * The path is constructed by moving from the current directory upwards
+ * to the root directory and reversing the constructed path.
+ *
+ * Return: The pointer to 'buf' containing the absolute path, or NULL on
+ * failure.
+ */
 char *sys_getcwd(char *buf, uint32_t size) {
   ASSERT(buf != NULL);
   void *io_buf = sys_malloc(SECTOR_SIZE);
@@ -1042,6 +1179,16 @@ char *sys_getcwd(char *buf, uint32_t size) {
   return buf;
 }
 
+/**
+ * sys_chdir() - Changes the current working directory.
+ * @path: The path of the new directory to change to.
+ *
+ * Changes the current working directory of the running thread to the directory
+ * specified by 'path'. The function first verifies that the path exists, is a
+ * directory, and then updates the current working directory.
+ *
+ * Return: 0 on success, -1 on failure.
+ */
 int32_t sys_chdir(const char *path) {
   int32_t ret = -1;
   struct path_search_record searched_record;
@@ -1059,6 +1206,18 @@ int32_t sys_chdir(const char *path) {
   return ret;
 }
 
+/**
+ * sys_stat() - Retrieves the status of a file or directory.
+ * @path: The file or directory path.
+ * @buf: A pointer to the struct stat where the status information will be
+ * stored.
+ *
+ * Fills the 'buf' structure with information about the file or directory
+ * specified by 'path'. This information includes the file type, inode number,
+ * and file size.
+ *
+ * Return: 0 on success, -1 if the file or directory does not exist.
+ */
 int32_t sys_stat(const char *path, struct stat *buf) {
   if (!strcmp(path, "/") || !strcmp(path, "/.") || !strcmp(path, "/..")) {
     buf->st_filetype = FT_DIRECTORY;

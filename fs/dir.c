@@ -285,6 +285,24 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *de,
   return false;
 }
 
+/**
+ * delete_dir_entry() - Deletes a directory entry from a partition's directory.
+ * @part: Pointer to the partition where the directory resides.
+ * @pdir: Pointer to the directory from which the entry is to be deleted.
+ * @inode_no: The inode number of the directory entry to be deleted.
+ * @io_buf: Buffer used for disk I/O operations.
+ *
+ * This function deletes a directory entry identified by 'inode_no' from the
+ * directory pointed by 'pdir' in the partition 'part'. It first locates the
+ * directory entry in the directory's data blocks, and then either clears the
+ * directory entry (if other entries exist in the same block) or deallocates
+ * the entire block (if this is the only entry in the block). The function
+ * also updates the corresponding inode's size and synchronizes the changes
+ * to the disk.
+ *
+ * Note: The function assumes that 'io_buf' is large enough to hold at least one
+ * disk sector.
+ */
 bool delete_dir_entry(struct partition *part, struct dir *pdir,
                       uint32_t inode_NO, void *io_buf) {
   struct inode *dir_inode = pdir->_inode;
@@ -398,6 +416,20 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
   return false;
 }
 
+/**
+ * dir_read() - Reads a directory entry from a directory.
+ * @dir: Pointer to the directory to be read.
+ *
+ * This function sequentially reads the entries in the directory referred to by
+ * 'dir'. It returns a pointer to the next directory entry on each call, and
+ * updates the directory's internal position pointer 'dir_pos' accordingly.
+ * If the end of the directory is reached or the directory is empty, it returns
+ * NULL. The function iterates over all the data blocks of the directory to read
+ * the entries, skipping over any deleted or unknown-type entries.
+ *
+ * Note: The returned directory entry is stored in a buffer within the 'dir'
+ * structure, which is overwritten on each call to this function.
+ */
 struct dir_entry *dir_read(struct dir *dir) {
   struct dir_entry *dir_entry_buf = (struct dir_entry *)dir->dir_buf;
   struct inode *dir_inode = dir->_inode;
@@ -457,11 +489,40 @@ struct dir_entry *dir_read(struct dir *dir) {
   return NULL;
 }
 
+/**
+ * dir_is_empty() - Checks if a directory is empty.
+ * @dir: Pointer to the directory to check.
+ *
+ * This function determines if the specified directory 'dir' is empty. A
+ * directory is considered empty if it contains only the '.' and '..' entries.
+ * The function checks if the size of the directory's inode equals the size of
+ * two directory entries, which indicates that no other entries exist in the
+ * directory except for '.' and '..'.
+ *
+ * Return: True if the directory is empty, false otherwise.
+ */
 bool dir_is_empty(struct dir *dir) {
   struct inode *dir_inode = dir->_inode;
   return (dir_inode->i_size == (cur_part->sup_b->dir_entry_size * 2));
 }
 
+/**
+ * dir_remove() - Removes a directory from its parent directory.
+ * @parent_dir: Pointer to the parent directory.
+ * @child_dir: Pointer to the child directory to be removed.
+ *
+ * This function removes the 'child_dir' directory from the 'parent_dir'
+ * directory. It first checks that the 'child_dir' is empty, except for the '.'
+ * and '..' entries. The function then deletes the directory entry corresponding
+ * to 'child_dir' from 'parent_dir', releases the inode and associated data
+ * blocks of 'child_dir', and synchronizes the changes to the inode bitmap and
+ * block bitmap on the disk.
+ *
+ * Note: The function assumes that the 'child_dir' is indeed a subdirectory of
+ * 'parent_dir' and that it is empty.
+ *
+ * Return: 0 on success, -1 on failure.
+ */
 int32_t dir_remove(struct dir *parent_dir, struct dir *child_dir) {
   struct inode *child_dir_inode = child_dir->_inode;
   int32_t block_idx = 1;
