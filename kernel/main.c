@@ -4,6 +4,7 @@
  */
 #include "console.h"
 #include "debug.h"
+#include "dir.h"
 #include "fs.h"
 #include "init.h"
 #include "interrupt.h"
@@ -38,10 +39,28 @@ int main() {
   /** uint32_t fd = sys_open("/file1", O_CREAT); */
   /** uint32_t fd = sys_open("/file1", O_RDONLY | O_RDWR); */
   /** sys_write(fd, "hello,world\n", 12); */
-  printf("/file1 delete %s!\n", sys_unlink("/file1") == 0 ? "done" : "fail");
+  /** printf("/file1 delete %s!\n", sys_unlink("/file1") == 0 ? "done" :
+   * "fail"); */
 
   /** sys_close(fd); */
   /** printk("%d close!\n", fd); */
+
+  printf("/dir1/subdir1 create %s!\n",
+         sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
+  printf("/dir1 create %s!\n", sys_mkdir("/dir1") == 0 ? "done" : "fail");
+  printf("now, /dir1/subdir1 create %s!\n",
+         sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
+  int fd = sys_open("/dir1/subdir1/file2", O_CREAT | O_RDWR);
+  if (fd != -1) {
+    printf("/dir1/subdir1/file2 create done!\n");
+    sys_write(fd, "Pied Piper in Silicon Valley\n", 29);
+    sys_lseek(fd, 0, SEEK_SET);
+    char buf[32] = {0};
+    sys_read(fd, buf, 29);
+    printf("/dir1/subdir1/file2 says: \n%s", buf);
+    sys_close(fd);
+  }
+
   while (1)
     ;
   return 0;

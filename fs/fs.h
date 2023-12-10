@@ -27,18 +27,18 @@ enum oflags {
 enum whence { SEEK_SET = 1, SEEK_CUR, SEEK_END };
 
 /**
- * struct path_search_record - Record of the search path during file searching.
- * @searched_path: Buffer to store the parent path encountered during the search
- * process.
- * @parent_dir: Pointer to the direct parent directory of the file or directory
- * being searched.
- * @file_type: Type of the file found. This could be a regular file, a
- * directory, or unknown (FT_UNKNOWN) if the file is not found.
+ * struct path_search_record - Records the path traversed during file search.
+ * @searched_path: Buffer to store the path traversed during the search process.
+ * @parent_dir: Pointer to the directory structure representing the direct
+ * parent directory of the file or directory being searched.
+ * @file_type: Type of the file found. It can be a regular file, directory, or
+ *             FT_UNKNOWN if the file is not found.
  *
- * This structure is used to keep track of the path traversed during the process
- * of searching for a file or directory. It records the path navigated
- * ('searched_path'), the direct parent directory of the file or directory in
- * question ('parent_dir'), and the type of the file if found ('file_type').
+ * This structure is used to keep track of the path that has been traversed
+ * when searching for a file or directory. It stores the path explored, the
+ * parent directory at each point of the search, and the type of the file
+ * if found. This is useful in file system operations where the path to a
+ * file and its parent directory information are required.
  */
 struct path_search_record {
   char searched_path[MAX_PATH_LEN];
@@ -53,5 +53,6 @@ uint32_t sys_write(int32_t fd, const void *buf, uint32_t count);
 int32_t sys_read(int32_t fd, void *buf, uint32_t count);
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence);
 int32_t sys_unlink(const char *pathname);
+int32_t sys_mkdir(const char *pathname) ;
 
 #endif

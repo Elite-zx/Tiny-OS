@@ -3,6 +3,7 @@
  * Time: 2023-12-04
  */
 #include "fs.h"
+#include "bitmap.h"
 #include "console.h"
 #include "debug.h"
 #include "dir.h"
@@ -732,4 +733,112 @@ int32_t sys_unlink(const char *pathname) {
   sys_free(io_buf);
   dir_close(searched_record.parent_dir);
   return 0;
+}
+
+int32_t sys_mkdir(const char *pathname) {
+  uint32_t rollback_action = 0;
+
+  void *io_buf = sys_malloc(SECTOR_SIZE * 2);
+  if (io_buf == NULL) {
+    printk("sys_mkdir: sys_malloc for io_buf failed\n");
+    return -1;
+  }
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+  int inode_NO = -1;
+  inode_NO = search_file(pathname, &searched_record);
+  if (inode_NO != -1) {
+    printk("sys_mkdir: directory %s already exists!\n");
+    rollback_action = 2;
+    goto rollback;
+  } else {
+    /* Check whether it is not found because the intermediate directory does
+     * not exist */
+    uint32_t pathname_depth = path_depth_cnt((char *)pathname);
+    uint32_t path_searched_depth =
+        path_depth_cnt(searched_record.searched_path);
+    if (pathname_depth != path_searched_depth) {
+      printk("sys_mkdir: cannot access %s: subpath %s is't "
+             "exist\n",
+             pathname, searched_record.searched_path);
+      rollback_action = 2;
+      goto rollback;
+    }
+  }
+
+  struct dir *parent_dir = searched_record.parent_dir;
+  char *dirname = strrchr(searched_record.searched_path, '/') + 1;
+
+  /******** create inode ********/
+  int new_inode_NO = inode_bitmap_alloc(cur_part);
+  if (new_inode_NO == -1) {
+    printk("sys_mkdir: allocate inode failed\n");
+    rollback_action = 2;
+    goto rollback;
+  }
+  struct inode new_dir_inode;
+  inode_init(new_inode_NO, &new_dir_inode);
+
+  /******** allocate a block to this directory ********/
+  uint32_t block_bitmap_idx = 0;
+  int32_t block_LBA = -1;
+  block_LBA = block_bitmap_alloc(cur_part);
+  if (block_LBA == -1) {
+    printk("sys_mkdir: block_bitmap_alloc for create directory failed\n");
+    rollback_action = 1;
+    goto rollback;
+  }
+  new_dir_inode.i_blocks[0] = block_LBA;
+  /* synchronize block bitmap to disk  */
+  block_bitmap_idx = block_LBA - cur_part->sup_b->data_start_LBA;
+  ASSERT(block_bitmap_idx != 0);
+  bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+
+  /******** create dir_entry '.' and '..' ********/
+  memset(io_buf, 0, SECTOR_SIZE * 2);
+  struct dir_entry *de = (struct dir_entry *)io_buf;
+  /* current directory '.'  */
+  memcpy(de->filename, ".", 1);
+  de->f_type = FT_DIRECTORY;
+  de->i_NO = new_inode_NO;
+  de++;
+  /* parent directory '..' */
+  memcpy(de->filename, "..", 2);
+  de->f_type = FT_DIRECTORY;
+  de->i_NO = parent_dir->_inode->i_NO;
+  ide_write(cur_part->which_disk, new_dir_inode.i_blocks[0], io_buf, 1);
+  new_dir_inode.i_size += 2 * cur_part->sup_b->dir_entry_size;
+
+  /******** add directory entry to parent directory ********/
+  struct dir_entry new_dir_entry;
+  memset(&new_dir_entry, 0, sizeof(struct dir_entry));
+  create_dir_entry(dirname, new_inode_NO, FT_DIRECTORY, &new_dir_entry);
+  memset(io_buf, 0, SECTOR_SIZE * 2);
+  if (!sync_dir_entry(parent_dir, &new_dir_entry, io_buf)) {
+    printk("sys_mkdir: sync_dir_entry to disk failed\n");
+    rollback_action = 1;
+    goto rollback;
+  }
+  /******** synchronize inode table and inode bitmap to disk ********/
+  memset(io_buf, 0, SECTOR_SIZE * 2);
+  inode_sync(cur_part, parent_dir->_inode, io_buf);
+  memset(io_buf, 0, SECTOR_SIZE * 2);
+  inode_sync(cur_part, &new_dir_inode, io_buf);
+  bitmap_sync(cur_part, new_inode_NO, INODE_BITMAP);
+
+  sys_free(io_buf);
+  dir_close(parent_dir);
+  return 0;
+
+/******** perform rollback  (AKA exception handling) ********/
+rollback:
+  switch (rollback_action) {
+  case 1:
+    bitmap_set(&cur_part->inode_bitmap, inode_NO, 0);
+  case 2:
+    dir_close(searched_record.parent_dir);
+    break;
+  }
+  sys_free(io_buf);
+  return -1;
 }

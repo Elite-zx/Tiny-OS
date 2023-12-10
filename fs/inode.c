@@ -65,16 +65,26 @@ static void inode_locate(struct partition *part, uint32_t inode_NO,
 }
 
 /**
- * inode_sync() - Write an inode to a partition.
- * @part: Partition to which the inode will be written.
- * @inode: Pointer to the inode to be written.
+ * inode_sync() - Writes an inode to a partition.
+ * @part: Pointer to the partition structure where the inode resides.
+ * @inode: Pointer to the inode structure to be written to the disk.
  * @io_buf: Buffer used for disk I/O operations.
  *
- * This function synchronizes an inode from memory to disk. It first locates the
- * inode on disk, then prepares a clean version of the inode, stripping out
- * fields that are only relevant in memory (such as inode_tag and i_open_cnts).
- * The function handles writing the inode to the disk, dealing with cases where
- * the inode spans across one or two sectors.
+ * This function synchronizes an inode from memory to disk. It writes the
+ * inode's data to the specified partition 'part'. The function locates the disk
+ * sector(s) where the inode should be written, prepares a clean copy of the
+ * inode for disk storage (excluding certain memory-only fields), and then
+ * writes it to the disk. It handles both situations where the inode spans
+ * across one or two disk sectors.
+ *
+ * Inodes on disk do not contain certain memory-only members like inode_tag and
+ * i_open_cnts, so these fields are cleared before writing. If the inode data
+ * spans two sectors, both are read into 'io_buf', modified, and then written
+ * back. For inodes fitting within a single sector, only that sector is
+ * processed.
+ *
+ * Note: The function assumes that 'io_buf' is large enough to hold two disk
+ * sectors.
  */
 void inode_sync(struct partition *part, struct inode *inode, void *io_buf) {
   uint32_t inode_NO = inode->i_NO;
