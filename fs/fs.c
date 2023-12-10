@@ -275,6 +275,19 @@ static void partition_format(struct disk *_hd, struct partition *part) {
   printk("  %s format done\n", part->name);
 }
 
+/**
+ * filesys_init() - Initializes the file system.
+ *
+ * Scans all the hard drives on the system to search for existing file systems.
+ * If a file system is not found on a partition, it formats the partition and
+ * creates a new file system. The function skips over raw disks (like hd60M.img)
+ * and only processes valid partitions. It supports only its own file system
+ * type identified by the magic number 0x20011124.
+ *
+ * It also sets a default partition to operate on and opens the root directory
+ * of the current partition. Finally, it initializes the global file table
+ * for managing open files.
+ */
 void filesys_init() {
   uint8_t channel_NO = 0, part_idx = 0;
   uint8_t dev_NO;
@@ -1031,7 +1044,7 @@ int32_t sys_rmdir(const char *pathname) {
 
 /**
  * get_parent_dir_inode_nr() - Gets the inode number of the parent directory.
- * @child_inode_nr: Inode number of the child directory.
+ * @child_dir_inode_NO: Inode number of the child directory.
  * @io_buf: Buffer for reading data from the disk.
  *
  * Reads the ".." entry in the child directory to get the inode number of
@@ -1061,8 +1074,8 @@ static uint32_t get_parent_dir_inode_NO(uint32_t child_dir_inode_NO,
 /**
  * get_child_dir_name() - Finds the name of a child directory in a parent
  * directory.
- * @p_inode_nr: Inode number of the parent directory.
- * @c_inode_nr: Inode number of the child directory.
+ * @p_inode_NO: Inode number of the parent directory.
+ * @c_inode_NO: Inode number of the child directory.
  * @path: Buffer to store the name of the child directory.
  * @io_buf: Buffer for disk IO operations.
  *
