@@ -98,6 +98,7 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
     fd_dix++;
   }
 
+  thread->cwd_inode_NO = 0;
   thread->stack_magic = 0x20011124;
 }
 

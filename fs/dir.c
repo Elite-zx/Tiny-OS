@@ -397,3 +397,89 @@ bool delete_dir_entry(struct partition *part, struct dir *pdir,
   /* target dir entry is not found  */
   return false;
 }
+
+struct dir_entry *dir_read(struct dir *dir) {
+  struct dir_entry *dir_entry_buf = (struct dir_entry *)dir->dir_buf;
+  struct inode *dir_inode = dir->_inode;
+  uint32_t all_blocks_addr[140] = {0};
+  uint32_t block_cnt = 12;
+  uint32_t block_idx = 0;
+
+  /******** fill all_blocks_addr with addresses of all blocks ********/
+  if (block_idx < 12) {
+    all_blocks_addr[block_idx] = dir_inode->i_blocks[block_idx];
+    block_idx++;
+  }
+
+  if (dir_inode->i_blocks[12] != 0) {
+    ide_read(cur_part->which_disk, dir_inode->i_blocks[12],
+             all_blocks_addr + 12, 1);
+    block_cnt += 128;
+  }
+  block_idx = 0;
+
+  /******** traverse all data blocks of directory 'dir' ********/
+  uint32_t cur_dir_entry_pos = 0;
+  uint32_t _dir_entry_size = cur_part->sup_b->dir_entry_size;
+  uint32_t dir_entry_per_sector = SECTOR_SIZE / _dir_entry_size;
+  uint32_t dir_entry_idx = 0;
+
+  while (dir->dir_pos < dir_inode->i_size) {
+    if (all_blocks_addr[block_idx] == 0) {
+      block_idx++;
+      continue;
+    }
+
+    memset(dir_entry_buf, 0, SECTOR_SIZE);
+    ide_read(cur_part->which_disk, all_blocks_addr[block_idx], dir_entry_buf,
+             1);
+    dir_entry_idx = 0;
+    /**** traverse the entries within each data block ****/
+    while (dir_entry_idx < dir_entry_per_sector) {
+      if ((dir_entry_buf + dir_entry_idx)->f_type != FT_UNKNOWN) {
+        if (cur_dir_entry_pos < dir->dir_pos) {
+          /* old di no more entries entry, move to next  */
+          cur_dir_entry_pos += _dir_entry_size;
+          dir_entry_idx++;
+          continue;
+        }
+        ASSERT(cur_dir_entry_pos == dir->dir_pos);
+        dir->dir_pos += _dir_entry_size;
+        return dir_entry_buf + dir_entry_idx;
+      }
+      /* next dir entry  */
+      dir_entry_idx++;
+    }
+    /* next data block  */
+    block_idx++;
+  }
+  /* no more entries  */
+  return NULL;
+}
+
+bool dir_is_empty(struct dir *dir) {
+  struct inode *dir_inode = dir->_inode;
+  return (dir_inode->i_size == (cur_part->sup_b->dir_entry_size * 2));
+}
+
+int32_t dir_remove(struct dir *parent_dir, struct dir *child_dir) {
+  struct inode *child_dir_inode = child_dir->_inode;
+  int32_t block_idx = 1;
+  while (block_idx < 13) {
+    /* as a empty directory, except for the first data block (which stores
+     * directory '.' and '..'), the remaining data blocks are empty. */
+    ASSERT(child_dir_inode->i_blocks[block_idx] == 0);
+    block_idx++;
+  }
+
+  void *io_buf = sys_malloc(SECTOR_SIZE * 2);
+  if (io_buf == NULL) {
+    printk("dir_is_empty: sys_malloc for io_buf failed\n");
+    return -1;
+  }
+
+  delete_dir_entry(cur_part, parent_dir, child_dir_inode->i_NO, io_buf);
+  inode_release(cur_part, child_dir_inode->i_NO);
+  sys_free(io_buf);
+  return 0;
+}

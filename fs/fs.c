@@ -17,6 +17,7 @@
 #include "stdio_kernel.h"
 #include "string.h"
 #include "super_block.h"
+#include "thread.h"
 
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[2];
@@ -684,7 +685,7 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
 }
 
 int32_t sys_unlink(const char *pathname) {
-  ASSERT(strlen(pathname) < MAX_FILE_NAME_LEN);
+  ASSERT(strlen(pathname) < MAX_PATH_LEN);
   /******** search pathname in current partition ********/
   struct path_search_record searched_record;
   memset(&searched_record, 0, sizeof(struct path_search_record));
@@ -882,5 +883,169 @@ int32_t sys_closedir(struct dir *dir) {
     dir_close(dir);
     ret = 0;
   }
+  return ret;
+}
+
+struct dir_entry *sys_readdir(struct dir *dir) {
+  ASSERT(dir != NULL);
+  return dir_read(dir);
+}
+
+void sys_rewinddir(struct dir *dir) { dir->dir_pos = 0; }
+
+int32_t sys_rmdir(const char *pathname) {
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+
+  int inode_NO = search_file(pathname, &searched_record);
+  /* make sure that dir to delete is not root directory  */
+  ASSERT(inode_NO != 0);
+
+  int ret_val = -1;
+  if (inode_NO == -1) {
+    printk("In %s, subpath %s not exist\n", pathname,
+           searched_record.searched_path);
+  } else {
+    /* dir to delete exists  */
+    if (searched_record.file_type == FT_REGULAR) {
+      printk("%s is regular file\n", pathname);
+    } else {
+      struct dir *dir = dir_open(cur_part, inode_NO);
+      if (!dir_is_empty(dir)) {
+        printk("dir %s is not empty, it is not allowed to delete a nonempty "
+               "directory!\n",
+               pathname);
+      } else {
+        if (!dir_remove(searched_record.parent_dir, dir)) {
+          ret_val = 0;
+        }
+      }
+      dir_close(dir);
+    }
+  }
+  dir_close(searched_record.parent_dir);
+  return ret_val;
+}
+
+static uint32_t get_parent_dir_inode_NO(uint32_t child_dir_inode_NO,
+                                        void *io_buf) {
+  /******** get parent directory inode number from the directory entry
+   * '..' of child_dir ********/
+  struct inode *child_dir_inode = inode_open(cur_part, child_dir_inode_NO);
+  /* read the first data block of child_dir_inode from disk to get the address
+   * of dir_entry '..'  */
+  uint32_t block_LBA = child_dir_inode->i_blocks[0];
+  ASSERT(block_LBA >= cur_part->sup_b->data_start_LBA);
+  ide_read(cur_part->which_disk, block_LBA, io_buf, 1);
+  inode_close(child_dir_inode);
+
+  struct dir_entry *dir_entry_iter = (struct dir_entry *)io_buf;
+  ASSERT(dir_entry_iter->i_NO < 4096 &&
+         dir_entry_iter[1].f_type == FT_DIRECTORY);
+  return dir_entry_iter[1].i_NO;
+}
+
+static int get_child_dir_name(uint32_t p_inode_NO, uint32_t c_inode_NO,
+                              char *path, void *io_buf) {
+  struct inode *parent_dir_inode = inode_open(cur_part, p_inode_NO);
+  /******** fill all_blocks_addr with the addresses of all blocks of parent
+   * directory file ********/
+  uint8_t block_idx = 0;
+  uint32_t all_blocks_addr[140], block_cnt = 12;
+  while (block_idx < 12) {
+    all_blocks_addr[block_idx] = parent_dir_inode->i_blocks[block_idx];
+  }
+  if (parent_dir_inode->i_blocks[12] != 0) {
+    ide_read(cur_part->which_disk, parent_dir_inode->i_blocks[block_idx],
+             all_blocks_addr + 12, 1);
+    block_cnt += 128;
+  }
+  inode_close(parent_dir_inode);
+
+  /******** traverse all dir entries of all blocks of the parent dir to find the
+   * target subdirectory file
+   * ********/
+  struct dir_entry *dir_entry_base = (struct dir_entry *)io_buf;
+  uint32_t _dir_entry_size = cur_part->sup_b->dir_entry_size;
+  uint32_t max_dir_entry_per_sector = SECTOR_SIZE / _dir_entry_size;
+  block_idx = 0;
+  while (block_idx < block_cnt) {
+    if (all_blocks_addr[block_idx] != 0) {
+      ide_read(cur_part->which_disk, all_blocks_addr[block_idx], io_buf, 1);
+      uint8_t dir_entry_idx = 0;
+      while ((dir_entry_idx < max_dir_entry_per_sector)) {
+        if ((dir_entry_base + dir_entry_idx)->i_NO == c_inode_NO) {
+          strcat(path, "/");
+          strcat(path, (dir_entry_base + dir_entry_idx)->filename);
+          return 0;
+        }
+        /* next dir entry within the same block  */
+        dir_entry_idx++;
+      }
+    }
+    /* block is empty, move to next  */
+    block_idx++;
+  }
+  /* target subdirectory file is not found  */
+  return -1;
+}
+
+char *sys_getcwd(char *buf, uint32_t size) {
+  ASSERT(buf != NULL);
+  void *io_buf = sys_malloc(SECTOR_SIZE);
+  if (io_buf == NULL)
+    return NULL;
+
+  struct task_struct *cur_thread = running_thread();
+  int32_t parent_inode_NO = 0;
+  int32_t child_dir_inode_NO = cur_thread->cwd_inode_NO;
+  ASSERT(child_dir_inode_NO >= 0 && child_dir_inode_NO < 4096);
+
+  if (child_dir_inode_NO == 0) {
+    buf[0] = '/';
+    buf[1] = 1;
+    return buf;
+  }
+  memset(buf, 0, size);
+  char full_path_reverse[MAX_PATH_LEN] = {0};
+
+  /******** find the parent directory layer by layer from bottom to top
+   * ********/
+  while (((child_dir_inode_NO != 0))) {
+    parent_inode_NO = get_parent_dir_inode_NO(child_dir_inode_NO, io_buf);
+    if (get_child_dir_name(parent_inode_NO, child_dir_inode_NO,
+                           full_path_reverse, io_buf) == -1) {
+      sys_free(io_buf);
+      return NULL;
+    }
+    child_dir_inode_NO = parent_inode_NO;
+  }
+
+  /******** reverse the full path ********/
+  ASSERT(strlen(full_path_reverse) <= size);
+  char *last_slash;
+  while (((last_slash = strrchr(full_path_reverse, '/')))) {
+    uint16_t len = strlen(buf);
+    strcpy(buf + len, last_slash);
+    *last_slash = 0;
+  }
+  sys_free(io_buf);
+  return buf;
+}
+
+int32_t sys_chdir(const char *path) {
+  int32_t ret = -1;
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+  int inode_NO = search_file(path, &searched_record);
+  if (inode_NO != -1) {
+    if (searched_record.file_type == FT_DIRECTORY) {
+      running_thread()->cwd_inode_NO = inode_NO;
+      ret = 0;
+    } else {
+      printk("sys_chdir: %s is regular file or other!\n", path);
+    }
+  }
+  dir_close(searched_record.parent_dir);
   return ret;
 }

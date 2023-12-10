@@ -223,6 +223,22 @@ void inode_init(uint32_t inode_NO, struct inode *new_inode) {
   }
 }
 
+/**
+ * inode_delete() - Clears an inode on a partition.
+ * @part: Pointer to the partition where the inode resides.
+ * @inode_no: The inode number to be deleted.
+ * @io_buf: Buffer used for disk I/O operations.
+ *
+ * This function erases an inode's data from the specified partition 'part'.
+ * It locates the inode on the disk using its number 'inode_no' and sets its
+ * content to zeros. This operation affects the disk sectors where the inode
+ * is stored. Depending on whether the inode spans across one or two disk
+ * sectors, it reads the necessary sectors into 'io_buf', zeros out the inode's
+ * part, and writes it back to the disk.
+ *
+ * Note: The function assumes that 'io_buf' is large enough to hold at least one
+ * disk sector.
+ */
 void inode_delete(struct partition *part, uint32_t inode_NO, void *io_buf) {
   ASSERT(inode_NO < 4096);
   struct inode_position inode_pos;
@@ -242,6 +258,23 @@ void inode_delete(struct partition *part, uint32_t inode_NO, void *io_buf) {
   }
 }
 
+/**
+ * inode_release() - Releases an inode and its associated data blocks.
+ * @part: Pointer to the partition where the inode resides.
+ * @inode_no: The inode number to be released.
+ *
+ * This function releases an inode and its associated data blocks from the
+ * partition 'part'. It first opens the inode corresponding to 'inode_no',
+ * then proceeds to release all data blocks used by the inode, including
+ * direct and indirect blocks. The function also clears the corresponding bits
+ * in the block bitmap and inode bitmap of the partition to indicate that these
+ * blocks and the inode are now free. Additionally, it updates the bitmaps on
+ * the disk to keep the filesystem state consistent.
+ *
+ * Note: Inode deletion from the inode table in the disk (zeroing its content)
+ * is performed for debugging purposes and is not necessary for inode release.
+ * The control of inode allocation is managed by the inode bitmap.
+ */
 void inode_release(struct partition *part, uint32_t inode_NO) {
   struct inode *inode_to_del = inode_open(part, inode_NO);
   ASSERT(inode_to_del->i_NO == inode_NO);
