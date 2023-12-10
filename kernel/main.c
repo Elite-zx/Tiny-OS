@@ -45,20 +45,33 @@ int main() {
   /** sys_close(fd); */
   /** printk("%d close!\n", fd); */
 
-  printf("/dir1/subdir1 create %s!\n",
-         sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
-  printf("/dir1 create %s!\n", sys_mkdir("/dir1") == 0 ? "done" : "fail");
-  printf("now, /dir1/subdir1 create %s!\n",
-         sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail");
-  int fd = sys_open("/dir1/subdir1/file2", O_CREAT | O_RDWR);
-  if (fd != -1) {
-    printf("/dir1/subdir1/file2 create done!\n");
-    sys_write(fd, "Pied Piper in Silicon Valley\n", 29);
-    sys_lseek(fd, 0, SEEK_SET);
-    char buf[32] = {0};
-    sys_read(fd, buf, 29);
-    printf("/dir1/subdir1/file2 says: \n%s", buf);
-    sys_close(fd);
+  /** printf("/dir1/subdir1 create %s!\n", */
+  /**        sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail"); */
+  /** printf("/dir1 create %s!\n", sys_mkdir("/dir1") == 0 ? "done" : "fail");
+   */
+  /** printf("now, /dir1/subdir1 create %s!\n", */
+  /**        sys_mkdir("/dir1/subdir1") == 0 ? "done" : "fail"); */
+  /** int fd = sys_open("/dir1/subdir1/file2", O_CREAT | O_RDWR); */
+  /** if (fd != -1) { */
+  /**   printf("/dir1/subdir1/file2 create done!\n"); */
+  /**   sys_write(fd, "Pied Piper in Silicon Valley\n", 29); */
+  /**   sys_lseek(fd, 0, SEEK_SET); */
+  /**   char buf[32] = {0}; */
+  /**   sys_read(fd, buf, 29); */
+  /**   printf("/dir1/subdir1/file2 says: \n%s", buf); */
+  /**   sys_close(fd); */
+  /** } */
+
+  struct dir *pdir = sys_opendir("/dir1/subdir1");
+  if (pdir) {
+    printk("/dir1/subdir1 open done!\n");
+    if (sys_closedir(pdir) == 0) {
+      printf("/dir1/subdir1 close done!\n");
+    } else {
+      printf("/dir1/subdir1 close fail!\n");
+    }
+  } else {
+    printk("/dir1/subdir1 open fail!\n");
   }
 
   while (1)

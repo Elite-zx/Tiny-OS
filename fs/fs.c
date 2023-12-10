@@ -437,7 +437,7 @@ static int search_file(const char *pathname,
      * function search_dir_entry, which defined in file dir.c. the corresponding
      * dir entry store in dir_e */
     if (search_dir_entry(cur_part, parent_dir, name_buf, &dir_e)) {
-      memset(name_buf, 0, 0);
+      memset(name_buf, 0, MAX_FILE_NAME_LEN);
       if (sub_path) {
         /* go on parsing */
         sub_path = path_parse(sub_path, name_buf);
@@ -449,6 +449,7 @@ static int search_file(const char *pathname,
         /* update parent_dir  */
         parent_dir = dir_open(cur_part, dir_e.i_NO);
         searched_record->parent_dir = parent_dir;
+        continue;
       } else if (dir_e.f_type == FT_REGULAR) {
         /* I found you !  */
         searched_record->file_type = FT_REGULAR;
@@ -841,4 +842,45 @@ rollback:
   }
   sys_free(io_buf);
   return -1;
+}
+
+struct dir *sys_opendir(const char *name) {
+  ASSERT(strlen(name) < MAX_PATH_LEN);
+
+  /******** Check if file 'name' is root_dir ********/
+
+  /* both '/', '/.' and '/..' are root dir */
+  if (name[0] == '/') {
+    if (name[1] == 0 || (name[1] == '.' && name[2] == 0) ||
+        (name[1] == '.' && name[2] == '.' && name[3] == 0)) {
+      return &root_dir;
+    }
+  }
+
+  /******** Check if file 'name' exists ********/
+  struct path_search_record searched_record;
+  memset(&searched_record, 0, sizeof(struct path_search_record));
+  struct dir *target_dir_ptr = NULL;
+  int inode_NO = search_file(name, &searched_record);
+  if (inode_NO == -1) {
+    printk("In %s, subpath %s not exitts\n", name,
+           searched_record.searched_path);
+  } else {
+    if (searched_record.file_type == FT_REGULAR) {
+      printk("%s is regular file!\n", name);
+    } else if (searched_record.file_type == FT_DIRECTORY) {
+      target_dir_ptr = dir_open(cur_part, inode_NO);
+    }
+  }
+  dir_close(searched_record.parent_dir);
+  return target_dir_ptr;
+}
+
+int32_t sys_closedir(struct dir *dir) {
+  int32_t ret = -1;
+  if (dir != NULL) {
+    dir_close(dir);
+    ret = 0;
+  }
+  return ret;
 }
