@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-11-26
  */
 #ifndef __USERPROG_PROCESS_H

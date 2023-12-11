@@ -1,5 +1,5 @@
 ;------------------------
-; Author: Xun Morris |
+; Author: Zhang Xun |
 ; Time: 2023-11-05 |
 ;------------------------
 
@@ -184,7 +184,7 @@ jmp dword SELECTOR_CODE:P_mode_start
 
 ;------------------------
 ; Now CPU enter protected mode,
-; I (The OS maker --- Mr.Morris) am about to start making great achievements.
+; I (The OS maker --- Mr.Zhang) am about to start making great achievements.
 ;------------------------
 [bits 32]
 P_mode_start:
@@ -289,7 +289,7 @@ mov [PAGE_DIR_TABLE_POS+4092], eax
 ;------------------------
 ; Create page table entry
 ;------------------------
-; A complete page table corresponds to 4MB of physical memory, but Xun-Morris-Tiny-OS kernel only requires 1MB (256 *4KB) of space. So only 256 page table entries are actually created first
+; A complete page table corresponds to 4MB of physical memory, but Xun-Tiny-OS kernel only requires 1MB (256 *4KB) of space. So only 256 page table entries are actually created first
 mov ecx, 256
 mov esi, 0
 mov edx, PG_US_U | PG_RW_W | PG_P

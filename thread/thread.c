@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-12-01
  */
 #include "thread.h"
@@ -253,7 +253,7 @@ void thread_init() {
   list_init(&thread_ready_list);
   list_init(&thread_all_list);
   lock_init(&pid_lock);
-  process_execute(init , "init");
+  process_execute(init, "init");
   make_main_thread();
   idle_thread = thread_start("idle", 10, idle, NULL);
   put_str("thread_init done\n");

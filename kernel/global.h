@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-12-02
  */
 #ifndef __KERNEL_GLOBAL_H

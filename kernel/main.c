@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-11-29
  */
 #include "console.h"
@@ -31,35 +31,38 @@ int prog_b_pid = 0;
 int main() {
   put_str("I am kernel\n");
   init_all();
-  while (1);
+  while (1)
+    ;
   return 0;
 }
 
 void kthread_a(void *arg) {
-  while (1);
+  while (1)
+    ;
 }
 
 void kthread_b(void *arg) {
-  while (1);
+  while (1)
+    ;
 }
 
 void u_prog_a(void) {
-  while (1);
+  while (1)
+    ;
 }
 
 void u_prog_b(void) {
-  while (1);
+  while (1)
+    ;
 }
 
-void init()
-{
+void init() {
   uint32_t ret_pid = fork();
-  if(ret_pid)
-  {
-    printf("I am father, my pid is %d, child pid is %d\n",getpid(),ret_pid);
+  if (ret_pid) {
+    printf("I am father, my pid is %d, child pid is %d\n", getpid(), ret_pid);
+  } else {
+    printf("I am child, my pid is %d, ret pid is %d\n", getpid(), ret_pid);
   }
-  else {
-    printf("I am child, my pid is %d, ret pid is %d\n",getpid(),ret_pid);
-  }
-  while (1);
+  while (1)
+    ;
 }

@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-11-29
  */
 #ifndef __THREAD_THREAD_H

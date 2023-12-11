@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris
+ * Author: Zhang Xun
  * Time: 2023-11-15
  */
 
@@ -38,5 +38,6 @@ void panic_spin(char *filename, int line, const char *func,
   put_str("condition: ");
   put_str((char *)condition);
   put_str("\n");
-  while (1);
+  while (1)
+    ;
 }

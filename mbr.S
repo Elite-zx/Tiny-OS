@@ -1,5 +1,5 @@
 ;------------------------
-; Author: Xun Morris |
+; Author: Zhang Xun |
 ; Time: 2023-11-02 |
 ;------------------------
 %include "boot.inc"
@@ -28,8 +28,8 @@ int 0x10
 ; Write data ("1 MBR") to the graphics card
 ;---------------------------------------------
 mov byte [gs:0x00], '1'
-; 0x1010 0100 -> foreground is red, background is green, blink 
-mov byte [gs:0x01], 0xA4 
+; 0x1010 0100 -> foreground is red, background is green, blink
+mov byte [gs:0x01], 0xA4
 
 
 mov byte [gs:0x02], ' '
@@ -113,7 +113,7 @@ out dx, al
 ;---------------------------------------------
 .not_ready:
 nop
-; read from the same port: 0x1f7 -- Status reg 
+; read from the same port: 0x1f7 -- Status reg
 in al, dx
 ; check the third bit in Status reg
 and al, 0x88
@@ -134,10 +134,10 @@ in ax, dx
 mov [bx], ax
 add bx, 2
 loop .go_on_read
-ret 
+ret
 
 ; fill with zeros until 510 bytes
 times 510-($-$$) db 0
 
 ; magic number in MBR, which Indicates that this sector has a program that can be loaded
-db 0x55, 0xaa 
+db 0x55, 0xaa

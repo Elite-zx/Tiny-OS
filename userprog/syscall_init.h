@@ -1,5 +1,5 @@
 /*
- * Author: Xun Morris |
+ * Author: Zhang Xun |
  * Time: 2023-11-28 |
  */
 #ifndef __USERPROG_SYSCALL_INIT_H
