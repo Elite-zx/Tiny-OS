@@ -31,41 +31,35 @@ int prog_b_pid = 0;
 int main() {
   put_str("I am kernel\n");
   init_all();
-  process_execute(u_prog_a, "u_prog_a");
-  process_execute(u_prog_b, "u_prog_b");
-  thread_start("kthread_a", 31, kthread_a, "I am thread a");
-  thread_start("kthread_b", 31, kthread_b, "I am thread b");
-
-  struct stat obj_stat;
-  sys_stat("/", &obj_stat);
-  printf("/'s info\n  i_no:%d\n  size:%d\n  file_type:%s\n", obj_stat.st_ino,
-         obj_stat.st_size,
-         obj_stat.st_filetype == FT_DIRECTORY ? "directory" : "regular");
-  sys_stat("/dir1", &obj_stat);
-  printf("/dir1's info\n  i_no:%d\n  size:%d\n  file_type:%s\n  ",
-         obj_stat.st_ino, obj_stat.st_size,
-         obj_stat.st_filetype == FT_DIRECTORY ? "directory" : "regular");
-  while (1)
-    ;
+  while (1);
   return 0;
 }
 
 void kthread_a(void *arg) {
-  while (1)
-    ;
+  while (1);
 }
 
 void kthread_b(void *arg) {
-  while (1)
-    ;
+  while (1);
 }
 
 void u_prog_a(void) {
-  while (1)
-    ;
+  while (1);
 }
 
 void u_prog_b(void) {
-  while (1)
-    ;
+  while (1);
+}
+
+void init()
+{
+  uint32_t ret_pid = fork();
+  if(ret_pid)
+  {
+    printf("I am father, my pid is %d, child pid is %d\n",getpid(),ret_pid);
+  }
+  else {
+    printf("I am child, my pid is %d, ret pid is %d\n",getpid(),ret_pid);
+  }
+  while (1);
 }

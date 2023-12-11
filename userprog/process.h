@@ -11,4 +11,6 @@
 
 void process_execute(void *filename, char *name);
 void process_activate(struct task_struct *pthread);
+void page_dir_activate(struct task_struct *pthread);
+uint32_t *create_page_dir(void);
 #endif

@@ -138,6 +138,19 @@ static void mem_pool_init(uint32_t all_mem) {
   put_str("  mem_pool_init done\n");
 }
 
+/**
+ * block_desc_init() - Initialize an array of memory block descriptors.
+ * @desc_array: Array of memory block descriptors to initialize.
+ *
+ * This function initializes each memory block descriptor in the given array.
+ * It sets up the block size, calculates the number of blocks per arena, and
+ * initializes the free list for each descriptor. The block sizes are set
+ * starting from 16 bytes and doubled for each subsequent descriptor.
+ *
+ * Context: This function is used to prepare for memory allocation operations,
+ *          specifically for the malloc function. It should be called during
+ *          memory system initialization.
+ */
 void block_desc_init(struct mem_block_desc *k_mb_desc_arr) {
   uint16_t desc_idx, _block_size = 16;
   for (desc_idx = 0; desc_idx < MB_DESC_CNT; desc_idx++) {
@@ -149,6 +162,20 @@ void block_desc_init(struct mem_block_desc *k_mb_desc_arr) {
   }
 }
 
+/**
+ * mem_init() - Entry point for memory management initialization.
+ *
+ * This function marks the start of memory initialization. It first prints a
+ * message to indicate the start of memory initialization. It then reads the
+ * total memory size and initializes the memory pool with this size. Finally,
+ * it initializes the array of memory block descriptors, which is essential for
+ * the malloc function, and prints a completion message.
+ *
+ * Context: This function is crucial for setting up the memory management
+ * system. It initializes the memory pool and prepares the memory block
+ *          descriptors for dynamic memory allocation.
+ * Return: This function does not return a value.
+ */
 void mem_init() {
   put_str("mem_init start\n");
   uint32_t mem_bytes_total = (*(uint32_t *)(0xb00));
@@ -450,11 +477,39 @@ uint32_t addr_v2p(uint32_t vaddr) {
   return ((*pte_phy_addr & 0xfffff000) + (vaddr & 0x00000fff));
 }
 
+/**
+ * arena2block() - Get the address of a memory block within an arena.
+ * @a: Pointer to the arena structure.
+ * @idx: Index of the memory block within the arena.
+ *
+ * This function calculates and returns the address of the memory block located
+ * at the specified index within the given arena. It accounts for the size of
+ * the arena structure and the size of each block within the arena.
+ *
+ * Context: Useful in memory management for accessing specific memory blocks
+ * within an arena, particularly when handling memory allocation and
+ * deallocation.
+ *
+ * Return: Address of the specified memory block within the arena.
+ */
 static struct mem_block *arena_2_block(struct arena *a, uint32_t idx) {
   return (struct mem_block *)((uint32_t)a + sizeof(struct arena) +
                               idx * a->desc->block_size);
 }
 
+/**
+ * block2arena() - Find the arena address corresponding to a memory block.
+ * @b: Pointer to the memory block.
+ *
+ * This function computes and returns the starting address of the arena that
+ * contains the given memory block. It uses the memory block address to
+ * backtrack to the start of the arena.
+ *
+ * Context: Utilized in memory management to identify the arena associated with
+ * a specific memory block, especially during memory freeing operations.
+ *
+ * Return: Address of the arena containing the given memory block.
+ */
 static struct arena *block_2_arena(struct mem_block *mb) {
   return (struct arena *)((uint32_t)mb & 0xfffff000);
 }
@@ -547,6 +602,18 @@ void *sys_malloc(uint32_t _size) {
   }
 }
 
+/**
+ * pfree() - Recycle a physical address back to the physical memory pool.
+ * @pg_phy_addr: The physical address to be recycled.
+ *
+ * This function recycles a given physical address back into the appropriate
+ * physical memory pool. It determines whether the address belongs to the user
+ * or kernel physical memory pool and clears the corresponding bit in the bitmap
+ * to mark it as free.
+ *
+ * Context: Used for managing physical memory allocation by keeping track of
+ *          allocated and free memory blocks.
+ */
 void pfree(uint32_t page_phy_addr) {
   struct pool *mem_pool;
   uint32_t bit_idx = 0;
@@ -556,6 +623,18 @@ void pfree(uint32_t page_phy_addr) {
   bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
 
+/**
+ * page_table_pte_remove() - Remove the mapping of a virtual address in the page
+ * table.
+ * @vaddr: The virtual address whose mapping is to be removed.
+ *
+ * This function removes the mapping of a specific virtual address in the page
+ * table by clearing its present bit. It then updates the TLB (Translation
+ * Lookaside Buffer) to ensure the changes are immediately effective.
+ *
+ * Context: Invoked when there's a need to unmap a virtual address, usually as
+ * part of freeing or reallocating memory.
+ */
 static void page_table_pte_remove(uint32_t vaddr) {
   uint32_t *pte = pte_ptr(vaddr);
   *pte &= PG_P_0;
@@ -563,6 +642,21 @@ static void page_table_pte_remove(uint32_t vaddr) {
   asm volatile("invlpg %0" ::"m"(vaddr) : "memory");
 }
 
+/**
+ * vaddr_remove() - Free a range of virtual addresses in the virtual address
+ * pool.
+ * @pf: The pool flag indicating the type of memory pool.
+ * @_vaddr: The starting virtual address of the range to free.
+ * @pg_cnt: The number of pages to free starting from _vaddr.
+ *
+ * This function frees a continuous range of virtual pages from the specified
+ * virtual address pool. It clears the bits in the bitmap corresponding to these
+ * addresses, effectively marking them as free. It handles both kernel and user
+ * virtual memory pools.
+ *
+ * Context: Used in the process of deallocating virtual memory, particularly
+ * when freeing multiple contiguous virtual pages.
+ */
 static void vaddr_remove(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   uint32_t allocated_bit_idx_start = -1;
   uint32_t vaddr = (uint32_t)_vaddr;
@@ -585,6 +679,21 @@ static void vaddr_remove(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   }
 }
 
+/**
+ * mfree_page() - Free a range of physical pages.
+ * @pf: The pool flag indicating the type of memory pool.
+ * @_vaddr: The starting virtual address of the pages to free.
+ * @pg_cnt: The number of physical pages to free.
+ *
+ * This function frees a specified number of physical pages starting from a
+ * given virtual address. It translates the virtual address to a physical
+ * address and ensures it falls within the correct memory pool. The function
+ * then recycles each physical page and removes the corresponding virtual
+ * address mapping.
+ *
+ * Context: Integral for memory management, specifically for freeing a block of
+ *          physical memory and its associated virtual mappings.
+ */
 void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   uint32_t vaddr = (uint32_t)_vaddr;
   uint32_t cnt = 0;
@@ -626,6 +735,21 @@ void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
   vaddr_remove(pf, _vaddr, pg_cnt);
 }
 
+/**
+ * sys_free() - Free memory at a given pointer.
+ * @ptr: Pointer to the memory to be freed.
+ *
+ * This function releases the memory allocated at the given pointer. It
+ * determines whether the memory belongs to the kernel or user pool and then
+ * proceeds to recycle the memory accordingly. It handles both large memory
+ * allocations and smaller memory blocks by either freeing the entire arena or
+ * recycling individual blocks and potentially the entire arena if all blocks
+ * are free.
+ *
+ * Context: A critical function for memory management, particularly for
+ * deallocating dynamically allocated memory. It is the counterpart to memory
+ * allocation functions like malloc.
+ */
 void sys_free(void *ptr) {
   ASSERT(ptr != NULL);
   if (ptr == NULL)
@@ -664,4 +788,35 @@ void sys_free(void *ptr) {
     }
   }
   lock_release(&mem_pool->_lock);
+}
+
+/**
+ * get_page_to_vaddr_without_bitmap() - Allocate a page without operating on
+ * the virtual address bitmap.
+ * @pf: The pool flag indicating the type of memory pool.
+ * @vaddr: The virtual address where the page should be mapped.
+ *
+ * This function allocates a single page of physical memory and maps it to a
+ * given virtual address, without modifying the virtual address bitmap. It's
+ * specifically designed for scenarios like fork, where there's no need to alter
+ * the virtual address bitmap. It acquires a lock to ensure thread safety,
+ * allocates a physical page, adds a page table entry for the mapping, and then
+ * releases the lock.
+ *
+ * Context: Essential in memory management operations where virtual address
+ * bitmap operations are not required, such as during process forking.
+ *
+ * Return: Returns the virtual address to the allocated page, or NULL if
+ * allocation fails.
+ */
+void *get_page_to_vaddr_without_bitmap(enum pool_flags pf, uint32_t vaddr) {
+  struct pool *mem_pool = pf & PF_KERNEL ? &kernel_pool : &user_pool;
+  lock_acquire(&mem_pool->_lock);
+
+  void *page_phy_addr = palloc(mem_pool);
+  if (page_phy_addr == NULL)
+    return NULL;
+  page_table_add((void *)vaddr, page_phy_addr);
+  lock_release(&mem_pool->_lock);
+  return (void *)vaddr;
 }

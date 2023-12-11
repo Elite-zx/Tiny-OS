@@ -48,10 +48,13 @@ struct mem_block {
 };
 
 /**
- * mem_block_desc - memory block descriptor
- * @block_size: the size of each memory block
- * @block_per_arena: the number of blocks in each arena
- * @free_list: free memory block linked list
+ * struct mem_block_desc - Memory Block Descriptor.
+ * @block_size: Size of each memory block.
+ * @blocks_per_arena: Number of blocks that this arena can hold.
+ * @free_list: List of currently available memory blocks.
+ *
+ * This structure is used to describe properties of memory blocks, including
+ * their size, the number of blocks per arena, and a list of free blocks.
  */
 struct mem_block_desc {
   uint32_t block_size;
@@ -67,4 +70,6 @@ uint32_t addr_v2p(uint32_t vaddr);
 void block_desc_init(struct mem_block_desc *k_mb_desc_arr);
 void *sys_malloc(uint32_t _size);
 void sys_free(void *ptr);
+void *get_page_to_vaddr_without_bitmap(enum pool_flags pf, uint32_t vaddr);
+void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt);
 #endif

@@ -115,6 +115,8 @@ struct task_struct {
   /* the inode number of current working directory   */
   uint32_t cwd_inode_NO;
 
+  int16_t parent_pid;
+
   uint32_t stack_magic;
 };
 
@@ -129,4 +131,5 @@ void init_thread(struct task_struct *thread, char *name, int _priority);
 void thread_create(struct task_struct *thread, thread_func function,
                    void *func_arg);
 void thread_yield();
+pid_t fork_pid(void);
 #endif

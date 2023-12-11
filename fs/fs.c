@@ -64,12 +64,12 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     ide_read(hd, cur_part->start_LBA + 1, _sup_b_buf, 1);
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
-    printk("part I mounted:\n");
-    printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n  "
-           "inode_bitmap_LBA: 0x%x\n  free_blocks_bitmap_LBA: 0x%x\n",
-           cur_part->name, cur_part->sup_b->data_start_LBA,
-           cur_part->sup_b->inode_table_LBA, cur_part->sup_b->inode_bitmap_LBA,
-           cur_part->sup_b->free_blocks_bitmap_LBA);
+    /** printk("part I mounted:\n"); */
+    /** printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n  " */
+    /**        "inode_bitmap_LBA: 0x%x\n  free_blocks_bitmap_LBA: 0x%x\n", */
+    /**        cur_part->name, cur_part->sup_b->data_start_LBA, */
+    /**        cur_part->sup_b->inode_table_LBA, cur_part->sup_b->inode_bitmap_LBA, */
+    /**        cur_part->sup_b->free_blocks_bitmap_LBA); */
 
     /*****************************************************************  */
     /* read free blocks bitmap from disk to memory */
@@ -204,9 +204,9 @@ static void partition_format(struct disk *_hd, struct partition *part) {
            : _sup_b.inode_bitmap_sectors);
 
   // clang-format off
-  buf_size =(buf_size > _sup_b.inode_table_sectors  
-             ? buf_size 
-             : _sup_b.inode_table_sectors) 
+  buf_size =(buf_size > _sup_b.inode_table_sectors
+             ? buf_size
+             : _sup_b.inode_table_sectors)
              * SECTOR_SIZE;
   uint8_t *buf = (uint8_t *)sys_malloc(buf_size);
   // clang-format on

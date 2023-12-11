@@ -13,7 +13,7 @@ push ebx
 push ebp
 
 ; retrieve the PCB address (which is self_kstack) of current thread from parameter 'cur_thread'
-; and store esp into this PCB
+; and store esp into this PCB. see P.433 for details
 mov eax, [esp+20]
 mov [eax], esp
 

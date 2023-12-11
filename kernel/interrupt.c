@@ -150,8 +150,7 @@ static void general_intr_handler(uint8_t vec_nr) {
     put_int(page_fault_vaddr);
   }
   put_str("\n!!!!!!      exception message end      !!!!!!\n");
-  while (1)
-    ;
+  while (1);
 }
 
 void register_handler(uint8_t vec_nr, intr_handler function) {

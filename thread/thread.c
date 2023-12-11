@@ -21,6 +21,8 @@ struct list thread_ready_list;
 struct list thread_all_list;
 struct lock pid_lock;
 
+extern void init();
+
 /* Get the PCB of the current thread  */
 struct task_struct *running_thread() {
   uint32_t esp;
@@ -54,8 +56,10 @@ static void kernel_thread(thread_func *function, void *func_arg) {
  */
 void thread_create(struct task_struct *thread, thread_func function,
                    void *func_arg) {
+  /* Let self_kstack point to the top of the thread stack  */
   thread->self_kstack -= sizeof(struct intr_stack);
   thread->self_kstack -= sizeof(struct thread_stack);
+
   struct thread_stack *kthread_stack =
       (struct thread_stack *)thread->self_kstack;
 
@@ -99,6 +103,7 @@ void init_thread(struct task_struct *thread, char *name, int _priority) {
   }
 
   thread->cwd_inode_NO = 0;
+  thread->parent_pid = -1;
   thread->stack_magic = 0x20011124;
 }
 
@@ -241,11 +246,14 @@ static void idle(void *arg) {
   }
 }
 
+pid_t fork_pid(void) { return allocate_pid(); }
+
 void thread_init() {
   put_str("thread_init start\n");
   list_init(&thread_ready_list);
   list_init(&thread_all_list);
   lock_init(&pid_lock);
+  process_execute(init , "init");
   make_main_thread();
   idle_thread = thread_start("idle", 10, idle, NULL);
   put_str("thread_init done\n");

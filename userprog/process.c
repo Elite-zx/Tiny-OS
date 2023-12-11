@@ -50,6 +50,7 @@ void start_process(void *_filename) {
   proc_stack->eflags = (EFLAGS_IF_1 | EFLAGS_IOPL_0 | EFLAGS_MBS);
 
   proc_stack->ss = SELECTOR_U_DATA;
+
   /* Allocate stack with priority 3 for user process */
   proc_stack->esp =
       (void *)((uint32_t)get_a_page(PF_USER, USER_STACK3_VADDR) + PAGE_SIZE);
