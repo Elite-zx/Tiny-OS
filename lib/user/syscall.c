@@ -4,6 +4,8 @@
  */
 
 #include "syscall.h"
+#include "console.h"
+#include "print.h"
 #include "stdint.h"
 #include "thread.h"
 
@@ -50,7 +52,12 @@ uint32_t write(int32_t fd, const void *buf, uint32_t count) {
   return _syscall3(SYS_WRITE, fd, buf, count);
 }
 
-pid_t fork()
-{
-  return _syscall0(SYS_FORK);
+pid_t fork() { return _syscall0(SYS_FORK); }
+
+ssize_t read(int fd, void *buf, size_t count) {
+  return _syscall3(SYS_READ, fd, buf, count);
 }
+
+void putchar(char char_in_ascii) { _syscall1(SYS_PUTCHAR, char_in_ascii); }
+
+void clear() { _syscall0(SYS_CLEAR); }

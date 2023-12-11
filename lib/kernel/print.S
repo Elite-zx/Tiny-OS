@@ -314,5 +314,22 @@ out dx, al
 popad
 ret
 
+global sys_clear
+sys_clear:
+pushad
+mov ax, SELECTOR_VIDEO
+mov gs, ax
+
+mov ebx, 0
+mov ecx, 80*25
+
+.cls:
+mov word [gs:ebx],0x0720
+add ebx, 2
+loop .cls
+
+mov ebx, 0
+jmp .set_cursor
+
 
 

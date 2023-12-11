@@ -11,6 +11,8 @@
 #include "global.h"
 #include "ide.h"
 #include "inode.h"
+#include "io_queue.h"
+#include "keyboard.h"
 #include "list.h"
 #include "memory.h"
 #include "stdint.h"
@@ -18,7 +20,6 @@
 #include "string.h"
 #include "super_block.h"
 #include "thread.h"
-#include <stdio.h>
 
 extern uint8_t channel_cnt;
 extern struct ide_channel channels[2];
@@ -65,10 +66,12 @@ static bool mount_partition(struct list_elem *pelem, const int arg) {
     memcpy(cur_part->sup_b, _sup_b_buf, sizeof(struct super_block));
 
     /** printk("part I mounted:\n"); */
-    /** printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n  " */
+    /** printk("  name: %s\n  root_dir_LBA: 0x%x\n  inode_table_LBA: 0x%x\n  "
+     */
     /**        "inode_bitmap_LBA: 0x%x\n  free_blocks_bitmap_LBA: 0x%x\n", */
     /**        cur_part->name, cur_part->sup_b->data_start_LBA, */
-    /**        cur_part->sup_b->inode_table_LBA, cur_part->sup_b->inode_bitmap_LBA, */
+    /**        cur_part->sup_b->inode_table_LBA,
+     * cur_part->sup_b->inode_bitmap_LBA, */
     /**        cur_part->sup_b->free_blocks_bitmap_LBA); */
 
     /*****************************************************************  */
@@ -673,13 +676,25 @@ uint32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
  * Return: The number of bytes successfully read, or -1 if an error occurred.
  */
 int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
-  if (fd < 0) {
-    printk("sys_write: fd error\n");
-    return -1;
-  }
   ASSERT(buf != NULL);
-  uint32_t _fd = fd_local_2_global(fd);
-  return file_read(&file_table[_fd], buf, count);
+  int ret_val = -1;
+  if (fd < 0 || fd == STDOUT_NO || fd == STDERR_NO) {
+    printk("sys_write: fd error\n");
+  } else if (fd == STDIN_NO) {
+    char *buffer = buf;
+    uint32_t bytes_read = 0;
+    while (bytes_read < count) {
+      /* get char from keyboard io buffer  */
+      *buffer = ioq_getchar(&kbd_circular_buf);
+      bytes_read++;
+      buffer++;
+    }
+    ret_val = (bytes_read == 0) ? -1 : (int32_t)bytes_read;
+  } else {
+    uint32_t _fd = fd_local_2_global(fd);
+    ret_val = file_read(&file_table[_fd], buf, count);
+  }
+  return ret_val;
 }
 
 /**

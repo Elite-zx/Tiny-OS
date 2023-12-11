@@ -125,7 +125,7 @@ $(BUILD_DIR)/file.o: fs/file.c fs/file.h fs/super_block.h fs/fs.h fs/dir.h fs/in
 	lib/string.h kernel/global.h kernel/memory.h thread/thread.h lib/kernel/stdio_kernel.h lib/kernel/list.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h lib/stdint.h lib/string.h \
+$(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/ide.h device/keyboard.h lib/stdint.h lib/string.h \
 	lib/kernel/stdio_kernel.h kernel/memory.h kernel/global.h kernel/debug.h
 	$(CC) $(CFLAGS) $< -o $@
 
