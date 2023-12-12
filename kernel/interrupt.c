@@ -52,6 +52,7 @@ char *intr_name[IDT_DESC_COUNT];
 intr_handler idt_table[IDT_DESC_COUNT];
 
 extern intr_handler intr_entry_table[IDT_DESC_COUNT];
+/* interrupt handler for 'int 0x80', defined in kernel.S  */
 extern uint32_t syscall_handler(void);
 
 /*
@@ -117,6 +118,7 @@ static void idt_desc_init() {
     make_idt_desc(&idt[i], IDT_DESC_ATTR_DPL0, intr_entry_table[i]);
   }
 
+  /* make ide desc for interrupt 'int 0x80'  */
   int lastindex = IDT_DESC_COUNT - 1;
   make_idt_desc(&idt[lastindex], IDT_DESC_ATTR_DPL3, syscall_handler);
   put_str("  idt_desc_init done\n");

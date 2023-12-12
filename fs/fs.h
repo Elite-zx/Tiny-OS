@@ -53,6 +53,7 @@ struct stat {
 };
 
 void filesys_init();
+char *path_parse(char *pathname, char *name_buf);
 int32_t sys_open(const char *pathname, uint8_t flag);
 int32_t sys_close(int32_t fd);
 uint32_t sys_write(int32_t fd, const void *buf, uint32_t count);

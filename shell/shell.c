@@ -2,39 +2,58 @@
  * Author: Zhang Xun
  * Time: 2023-12-11
  */
+#include "buildin_cmd.h"
 #include "debug.h"
 #include "file.h"
+#include "fs.h"
+#include "global.h"
 #include "stdint.h"
 #include "stdio.h"
 #include "string.h"
 #include "syscall.h"
 
-#define CMD_LEN 128
 #define MAX_ARG_NR 16
 
-static char cmd_line[CMD_LEN] = {0};
-char cwd_buf[64] = {0};
+static char cmd_line[MAX_PATH_LEN] = {0};
+char final_path[MAX_PATH_LEN] = {0};
+char cwd_buf[MAX_PATH_LEN] = {0};
 
 void print_prompt() { printf("[Peach@localhost %s]$ ", cwd_buf); }
 
 static void readline(char *buf, int32_t count) {
-  ASSERT(buf != NULL && count > 0);
+  assert(buf != NULL && count > 0);
   char *pos = buf;
   while (read(STDIN_NO, pos, 1) != -1 && (pos - buf) < count) {
     switch (*pos) {
     case '\n':
     case '\r':
+      /* end of command  */
       *pos = 0;
       putchar('\n');
       return;
     case '\b':
+      /* handle BACKSPACE: Avoid deleting command prompt  */
       if (buf[0] != '\b') {
-        /* BACKSPACE: Avoid deleting command prompt  */
         --pos;
         putchar('\b');
       }
       break;
+    case 'l' - 'a':
+      /* handle Ctrl+l, clear screen but maintain the current line  */
+      *pos = 0;
+      clear();
+      print_prompt();
+      printf("%s", buf);
+      break;
+    case 'u' - 'a':
+      /* handle Ctrl+l, clear what I put in the current line  */
+      while (buf != pos) {
+        putchar('\b');
+        *(pos--) = 0;
+      }
+      break;
     default:
+      /* regular character, just print  */
       putchar(*pos);
       pos++;
     }
@@ -43,16 +62,78 @@ static void readline(char *buf, int32_t count) {
          "128\n");
 }
 
+static int32_t cmd_parse(char *cmd_str, char **argv, char token) {
+  assert(cmd_str != NULL);
+
+  int32_t arg_idx = 0;
+  while (arg_idx < MAX_ARG_NR) {
+    /* clear argv  */
+    argv[arg_idx] = NULL;
+    arg_idx++;
+  }
+
+  char *next = cmd_str;
+  int32_t argc = 0;
+  while (*next) {
+    while (*next == token) {
+      /* skip over the token (whitespace) before parameter*/
+      next++;
+    }
+
+    if (*next == 0) {
+      /* end of command  */
+      break;
+    }
+
+    /* record the command line parameters */
+    argv[argc] = next;
+
+    while (*next && *next != token) {
+      /* find the end of current parameter  */
+      next++;
+    }
+
+    if (*next == token) {
+      /* set the end of current parameter to '\0'  */
+      *next++ = 0;
+    }
+
+    if (argc > MAX_ARG_NR) {
+      return -1;
+    }
+    argc++;
+  }
+  return argc;
+}
+
+char *argv[MAX_ARG_NR];
+int32_t argc = -1;
+
 void zx_shell() {
   cwd_buf[0] = '/';
+  cwd_buf[1] = '0';
   while (1) {
     print_prompt();
-    memset(cmd_line, 0, CMD_LEN);
-    readline(cmd_line, CMD_LEN);
+    memset(final_path, 0, MAX_PATH_LEN);
+    memset(cmd_line, 0, MAX_PATH_LEN);
+    readline(cmd_line, MAX_PATH_LEN);
     if (cmd_line[0] == 0) {
       /* Only a carriage return character in the command  */
       continue;
     }
+    argc = -1;
+    argc = cmd_parse(cmd_line, argv, ' ');
+    if (argc == -1) {
+      printf("number of parameters exceeds maximum allowed (%d) \n",
+             MAX_ARG_NR);
+      continue;
+    }
+    int32_t arg_idx = 0;
+    while (arg_idx < argc) {
+      make_clear_abs_path(argv[arg_idx], final_path);
+      printf("%s -> %s \n", argv[arg_idx], final_path);
+      arg_idx++;
+    }
   }
-  PANIC("shell: something wrong!");
+  PANIC("shell: you should't be here :‑( !");
 }

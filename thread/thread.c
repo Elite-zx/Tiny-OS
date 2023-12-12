@@ -4,6 +4,8 @@
  */
 #include "thread.h"
 #include "debug.h"
+#include "file.h"
+#include "fs.h"
 #include "global.h"
 #include "interrupt.h"
 #include "list.h"
@@ -14,6 +16,7 @@
 #include "string.h"
 #include "switch.h"
 #include "sync.h"
+#include <stdio.h>
 
 struct task_struct *main_thread;
 struct task_struct *idle_thread;
@@ -247,6 +250,73 @@ static void idle(void *arg) {
 }
 
 pid_t fork_pid(void) { return allocate_pid(); }
+
+static void print_in_format(char *buf, int32_t buf_len, void *ptr,
+                            char format_flag) {
+  memset(buf, 0, buf_len);
+  uint8_t buf_idx = 0;
+  switch (format_flag) {
+  case 's':
+    buf_idx = sprintf(buf, "%s", ptr);
+  case 'd':
+    /* for pid ( with type int16_t )  */
+    buf_idx = sprintf(buf, "%d", *((int16_t *)ptr));
+  case 'x':
+    buf_idx = sprintf(buf, "%x", *((uint32_t *)ptr));
+  }
+  /* fill buf with whitespace */
+  while (buf_idx < buf_len) {
+    buf[buf_idx] = ' ';
+    buf_idx++;
+  }
+  sys_write(STDOUT_NO, buf, buf_len - 1);
+}
+
+static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
+  struct task_struct *pthread =
+      elem2entry(struct task_struct, all_list_tag, pelem);
+  char output_buf[16] = {0};
+
+  /* print pid  */
+  print_in_format(output_buf, 16, &pthread->pid, 'd');
+  /* print parent pid  */
+  if (pthread->parent_pid == -1) {
+    print_in_format(output_buf, 16, NULL, 's');
+  } else {
+    print_in_format(output_buf, 16, &pthread->parent_pid, 'd');
+  }
+  /* print the status of task */
+  switch (pthread->status) {
+  case 0:
+    print_in_format(output_buf, 16, "RUNNING", 's');
+  case 1:
+    print_in_format(output_buf, 16, "READY", 's');
+  case 2:
+    print_in_format(output_buf, 16, "BLOCKED", 's');
+  case 3:
+    print_in_format(output_buf, 16, "WAITING", 's');
+  case 4:
+    print_in_format(output_buf, 16, "HANGING", 's');
+  case 5:
+    print_in_format(output_buf, 16, "DIED", 's');
+  }
+  /* print elapsed_ticks  */
+  print_in_format(output_buf, 16, &pthread->elapsed_ticks, 'x');
+
+  memset(output_buf, 0, 16);
+  ASSERT(strlen(pthread->name) <= 16);
+  memcpy(output_buf, pthread->name, strlen(pthread->name));
+  strcat(output_buf, "\n");
+  sys_write(STDOUT_NO, output_buf, strlen(output_buf));
+  return false;
+}
+
+void sys_ps() {
+  char *ps_title = "PID      PPID      STAT      TICKS      COMMAND\n";
+  sys_write(STDOUT_NO, ps_title, strlen(ps_title));
+  /* print task info for all tasks  */
+  list_traversal(&thread_all_list, print_task_info, 0);
+}
 
 void thread_init() {
   put_str("thread_init start\n");

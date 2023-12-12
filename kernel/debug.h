@@ -30,4 +30,6 @@ void panic_spin(char *filename, int line, const char *func,
   }
 #endif /*__NDEBUG*/
 
+#define assert ASSERT
+
 #endif /*__KERNEL_DEBUG_H*/

@@ -365,7 +365,7 @@ void filesys_init() {
  * pointer to the remainder of the pathname, or NULL if the end of the
  * pathname has been reached.
  */
-static char *path_parse(char *pathname, char *name_buf) {
+char *path_parse(char *pathname, char *name_buf) {
   if (pathname[0] == '/') {
     /* skip over the begining '/',  eg: ///home/elite-zx -> home/elite-zx  */
     while (*(++pathname) == '/')

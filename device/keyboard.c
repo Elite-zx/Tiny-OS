@@ -185,6 +185,13 @@ static void intr_keyboard_handler(void) {
     char cur_char = keymap[index][shift];
     /* If it is a visible character or a character such as backspace, then print
      */
+
+    /* handle special case: Ctrl + l  and Ctrl + u  */
+    if ((ctrl_down_last && cur_char == 'l') ||
+        (ctrl_down_last && cur_char == 'u')) {
+      cur_char -= 'a';
+    }
+
     if (cur_char) {
       if (!ioq_is_full(&kbd_circular_buf)) {
         /** put_char(cur_char); */

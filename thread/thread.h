@@ -132,4 +132,5 @@ void thread_create(struct task_struct *thread, thread_func function,
                    void *func_arg);
 void thread_yield();
 pid_t fork_pid(void);
+void sys_ps();
 #endif
