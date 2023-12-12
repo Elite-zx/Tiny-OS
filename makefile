@@ -137,7 +137,7 @@ $(BUILD_DIR)/fork.o: userprog/fork.c userprog/fork.h userprog/process.h thread/t
 $(BUILD_DIR)/shell.o: shell/shell.c shell/shell.h fs/file.h lib/stdint.h lib/stdio.h lib/user/syscall.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h kernel/debug.h fs/dir.h fs/fs.h lib/string.h lib/user/syscall.h
+$(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h kernel/debug.h fs/dir.h fs/fs.h lib/string.h lib/user/syscall.h lib/string.h kernel/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## assemble assembly ##################

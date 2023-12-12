@@ -470,7 +470,7 @@ struct dir_entry *dir_read(struct dir *dir) {
     while (dir_entry_idx < dir_entry_per_sector) {
       if ((dir_entry_buf + dir_entry_idx)->f_type != FT_UNKNOWN) {
         if (cur_dir_entry_pos < dir->dir_pos) {
-          /* old di no more entries entry, move to next  */
+          /* no more entries, move to the next  */
           cur_dir_entry_pos += _dir_entry_size;
           dir_entry_idx++;
           continue;

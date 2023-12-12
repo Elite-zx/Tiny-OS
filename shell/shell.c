@@ -111,7 +111,6 @@ int32_t argc = -1;
 
 void zx_shell() {
   cwd_buf[0] = '/';
-  cwd_buf[1] = '0';
   while (1) {
     print_prompt();
     memset(final_path, 0, MAX_PATH_LEN);
@@ -128,11 +127,18 @@ void zx_shell() {
              MAX_ARG_NR);
       continue;
     }
-    int32_t arg_idx = 0;
-    while (arg_idx < argc) {
-      make_clear_abs_path(argv[arg_idx], final_path);
-      printf("%s -> %s \n", argv[arg_idx], final_path);
-      arg_idx++;
+    if (!strcmp("ls", argv[0])) {
+      buildin_ls(argc, argv);
+    } else if (!strcmp("cd", argv[0])) {
+        if (buildin_cd(argc, argv) != NULL) {
+          memset(cwd_buf, 0, MAX_PATH_LEN);
+          strcpy(cwd_buf, final_path);
+        }
+      }
+    else if (!strcmp("pwd", argv[0])) {
+      buildin_pwd(argc, argv);
+    } else {
+      printf("command not found: %s", argv[0]);
     }
   }
   PANIC("shell: you should't be here :‑( !");

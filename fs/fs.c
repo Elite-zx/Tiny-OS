@@ -1227,7 +1227,7 @@ int32_t sys_chdir(const char *path) {
       running_thread()->cwd_inode_NO = inode_NO;
       ret = 0;
     } else {
-      printk("sys_chdir: %s is regular file or other!\n", path);
+      printk("sys_chdir: %s is not a directory!\n", path);
     }
   }
   dir_close(searched_record.parent_dir);

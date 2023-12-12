@@ -1,8 +1,13 @@
 #include "debug.h"
 #include "dir.h"
 #include "fs.h"
+#include "global.h"
+#include "stdint.h"
+#include "stdio.h"
 #include "string.h"
 #include "syscall.h"
+
+extern char final_path[MAX_PATH_LEN];
 
 /**
  * convert_path() - Simplify a given absolute file path.
@@ -96,4 +101,157 @@ void make_clear_abs_path(char *path, char *final_path) {
 
   /******** remove '.' and '..' in old absolute path ********/
   convert_path(abs_path, final_path);
+}
+
+/* command pwd  */
+void buildin_pwd(uint32_t argc, char **argv UNUSED) {
+  if (argc != 1) {
+    printf("pwd: too many arguments!\n");
+    return;
+  } else {
+    if (getcwd(final_path, MAX_PATH_LEN) != NULL) {
+      printf("%s\n", final_path);
+    } else {
+      printf("pwd: get current working directory failed\n");
+    }
+  }
+}
+
+char *buildin_cd(uint32_t argc, char **argv) {
+  /* too much argument  */
+  if (argc > 2) {
+    printf("cd: only support 1 argument!\n");
+    return NULL;
+  }
+
+  if (argc == 1) {
+    /* no argument for command cd, change directory to root dir (so root_dir is
+     * the default argument of command cd ) */
+    final_path[0] = '/';
+    final_path[1] = 0;
+  } else {
+    /* convert path to canonical */
+    make_clear_abs_path(argv[1], final_path);
+  }
+
+  if (chdir(final_path) == -1) {
+    printf("cd: no such directory: %s\n", final_path);
+    return NULL;
+  }
+  return final_path;
+}
+
+void buildin_ls(uint32_t argc, char **argv) {
+  char *pathname = NULL;
+  struct stat file_stat;
+  memset(&file_stat, 0, sizeof(struct stat));
+
+  uint32_t arg_path_nr = 0;
+  bool long_info = false;
+  uint32_t arg_idx = 1;
+  while (arg_idx < argc) {
+    if (argv[arg_idx][0] == '-') {
+      /******** handle option argument********/
+      if (!strcmp(argv[arg_idx], "-l")) {
+        long_info = true;
+      } else if (!strcmp(argv[arg_idx], "--help")) {
+        printf("usage:ls [OPTION]... [FILE]...\n  list all files in the "
+               "current directory if no option\n  -l      list all all "
+               "information\n  --help      for help\n");
+        return;
+      } else {
+        printf("ls: invalid option %s\nMore info with: 'ls --help'.\n",
+               argv[arg_idx]);
+        return;
+      }
+    } else {
+      /******** handle path argument ********/
+      if (arg_path_nr == 0) {
+        pathname = argv[arg_idx];
+        arg_path_nr = 0;
+      } else {
+        printf("ls: only support one path\n");
+        return;
+      }
+    }
+    /* next argument  */
+    arg_idx++;
+  }
+
+  if (pathname == NULL) {
+    /******** not path argument, which means "ls" or "ls -l". print all files
+     * under cwd ********/
+    if (getcwd(final_path, MAX_PATH_LEN) != NULL) {
+      pathname = final_path;
+    } else {
+      printf("ls: getcwd for default path failed\n");
+      return;
+    }
+  } else {
+    /******** have path argument, convert it to a canonical absolute
+     * path********/
+    make_clear_abs_path(pathname, final_path);
+    pathname = final_path;
+  }
+
+  /******** get the attributes of the specified file ********/
+  if (stat(pathname, &file_stat) == -1) {
+    printf("ls: Specified path '%s' doesn't exist.\n", pathname);
+    return;
+  }
+
+  if (file_stat.st_filetype == FT_DIRECTORY) {
+    /******** paathname is a directory, so traverse all dir entry in specified
+     * directory ********/
+    struct dir *dir = opendir(pathname);
+    struct dir_entry *dir_e = NULL;
+    char sub_pathname[MAX_PATH_LEN] = {0};
+    uint32_t pathname_len = strlen(pathname);
+    uint32_t last_char_idx = pathname_len - 1;
+    memcpy(sub_pathname, pathname, pathname_len);
+
+    /* make sure there is a path delimiter '\' at the end of sub_pathname,
+     * because the file name in the directory will be appended later.  */
+    if (sub_pathname[last_char_idx] != '/') {
+      pathname_len++;
+    }
+
+    rewinddir(dir);
+
+    if (long_info) {
+      /******** handle 'ls -l', print long info
+       * : total size, file type, inode_NO, file size, filename ********/
+      char f_type;
+      printf("total: %d\n", file_stat.st_size);
+      while ((dir_e = readdir(dir))) {
+        f_type = 'd';
+        if (dir_e->f_type == FT_REGULAR) {
+          f_type = '-';
+        }
+        sub_pathname[pathname_len] = 0;
+        strcat(sub_pathname, dir_e->filename);
+        memset(&file_stat, 0, sizeof(struct stat));
+        if (stat(sub_pathname, &file_stat) == -1) {
+          printf("ls: Specified path '%s' doesn't exist.\n", dir_e->filename);
+          return;
+        }
+        printf("%c %d %d %s\n", f_type, dir_e->i_NO, file_stat.st_size,
+               dir_e->filename);
+      }
+    } else {
+      /******** with option '-l', Just simply print the filename ********/
+      while ((dir_e = readdir(dir))) {
+        printf("%s ", dir_e->filename);
+      }
+      printf("\n");
+    }
+    closedir(dir);
+  } else {
+    /******** the specified file 'pathname' is a regular file ********/
+    if (long_info) {
+      printf("- %d %d %s\n", file_stat.st_ino, file_stat.st_size, pathname);
+    } else {
+      printf("%s\n", pathname);
+    }
+  }
 }
