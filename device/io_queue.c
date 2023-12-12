@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "global.h"
 #include "interrupt.h"
+#include "stdio_kernel.h"
 #include "sync.h"
 #include "thread.h"
 
@@ -54,25 +55,40 @@ bool ioq_is_empty(struct ioqueue *ioq) {
 }
 
 /**
- * ioq_wait - Blocks the current thread until it can proceed
- * @waiter: Double pointer to the task_struct representing the waiting thread
+ * ioq_wait() - Block the current producer or consumer on this buffer.
+ * @waiter: Pointer to the task_struct pointer of the waiting task.
  *
- * Blocks the current thread by setting its status to TASK_BLOCKED.
+ * This function is used to block the current thread (either a producer or a
+ * consumer) that is operating on a shared buffer. The current thread is set as
+ * the waiter and then blocked. This is used in scenarios where a thread needs
+ * to wait for some condition to become true (like waiting for space to write to
+ * or data to read from a buffer).
+ *
+ * Context: Typically used in producer-consumer scenarios where synchronization
+ *          between threads is required.
  */
 static void ioq_wait(struct task_struct **waiter) {
-  ASSERT(waiter != NULL && *waiter != NULL);
+  ASSERT(waiter != NULL && *waiter == NULL);
   *waiter = running_thread();
   thread_block(TASK_BLOCKED);
 }
 
 /**
- * ioq_wakeup - Unblocks a waiting thread
- * @waiter: Double pointer to the task_struct representing the thread to wake up
+ * wakeup() - Wake up the blocked waiter.
+ * @waiter: Pointer to the task_struct pointer of the waiting task.
  *
- * Unblocks the thread pointed to by waiter and sets the pointer to NULL.
+ * This function unblocks a thread that was previously blocked by ioq_wait(). It
+ * takes the pointer to the task_struct pointer of the waiter, unblocks it, and
+ * then sets the pointer to NULL. This is part of synchronization in
+ * producer-consumer problem, where a blocked thread (waiter) needs to be woken
+ * up when the condition it was waiting for becomes true.
+ *
+ * Context: Used in conjunction with ioq_wait() to manage blocking and
+ * unblocking of threads in synchronization scenarios such as producer-consumer
+ * problems.
  */
 static void ioq_wakeup(struct task_struct **waiter) {
-  ASSERT(waiter != NULL && *waiter != NULL);
+  ASSERT(*waiter != NULL);
   thread_unblock(*waiter);
   *waiter = NULL;
 }

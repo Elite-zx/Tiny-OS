@@ -1,3 +1,7 @@
+/*
+ * Author: Zhang Xun
+ * Time: 2023-12-11
+ */
 #include "debug.h"
 #include "file.h"
 #include "stdint.h"
@@ -11,12 +15,12 @@
 static char cmd_line[CMD_LEN] = {0};
 char cwd_buf[64] = {0};
 
-void print_prompt() { printf("[Morris@localhost %s]$ ", cwd_buf); }
+void print_prompt() { printf("[Peach@localhost %s]$ ", cwd_buf); }
 
 static void readline(char *buf, int32_t count) {
   ASSERT(buf != NULL && count > 0);
   char *pos = buf;
-  while (read(STDIN_NO, pos, count) != -1 && (pos - buf) < count) {
+  while (read(STDIN_NO, pos, 1) != -1 && (pos - buf) < count) {
     switch (*pos) {
     case '\n':
     case '\r':

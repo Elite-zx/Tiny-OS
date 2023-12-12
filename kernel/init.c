@@ -17,7 +17,7 @@
 #include "tss.h"
 
 /**
- * initialize all modules
+ * init_all - initialize all modules
  */
 void init_all() {
   put_str("init_all\n");

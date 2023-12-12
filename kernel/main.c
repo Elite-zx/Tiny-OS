@@ -33,8 +33,8 @@ int main() {
   put_str("I am kernel\n");
   init_all();
   sys_clear();
-  console_put_str("main: [Morris@localhost /]$ ");
-
+  console_put_str("[Pench@localhost /]$ ");
+  intr_enable();
   while (1)
     ;
   return 0;
@@ -63,13 +63,13 @@ void u_prog_b(void) {
 void init() {
   uint32_t ret_pid = fork();
   if (ret_pid) {
+
+    printf("hello!\n");
     while (1)
       ;
   } else {
-    printf("hello!");
+    printf("run zx shell!\n");
     zx_shell();
   }
   PANIC("init: something wrong!");
-  while (1)
-    ;
 }
