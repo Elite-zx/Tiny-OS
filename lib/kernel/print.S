@@ -329,7 +329,28 @@ add ebx, 2
 loop .cls
 
 mov ebx, 0
-jmp .set_cursor
 
+.set_cursor:
+; set high 8 bits
+mov dx, 0x03d4
+mov al, 0x0e
+out dx, al
+
+mov dx, 0x03d5
+mov al, bh
+out dx, al
+
+; set low 8 bits
+mov dx, 0x03d4
+mov al, 0x0f
+out dx, al
+
+mov dx, 0x03d5
+mov al, bl
+out dx, al
+
+.put_char_end:
+popad
+ret
 
 

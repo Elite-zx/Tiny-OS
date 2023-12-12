@@ -679,7 +679,7 @@ int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
   ASSERT(buf != NULL);
   int ret_val = -1;
   if (fd < 0 || fd == STDOUT_NO || fd == STDERR_NO) {
-    printk("sys_write: fd error\n");
+    printk("sys_read: fd error\n");
   } else if (fd == STDIN_NO) {
     char *buffer = buf;
     uint32_t bytes_read = 0;

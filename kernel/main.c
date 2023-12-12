@@ -13,6 +13,7 @@
 #include "memory.h"
 #include "print.h"
 #include "process.h"
+#include "shell.h"
 #include "stdint.h"
 #include "stdio.h"
 #include "stdio_kernel.h"
@@ -31,6 +32,9 @@ int prog_b_pid = 0;
 int main() {
   put_str("I am kernel\n");
   init_all();
+  sys_clear();
+  console_put_str("main: [Morris@localhost /]$ ");
+
   while (1)
     ;
   return 0;
@@ -59,10 +63,13 @@ void u_prog_b(void) {
 void init() {
   uint32_t ret_pid = fork();
   if (ret_pid) {
-    printf("I am father, my pid is %d, child pid is %d\n", getpid(), ret_pid);
+    while (1)
+      ;
   } else {
-    printf("I am child, my pid is %d, ret pid is %d\n", getpid(), ret_pid);
+    printf("hello!");
+    zx_shell();
   }
+  PANIC("init: something wrong!");
   while (1)
     ;
 }

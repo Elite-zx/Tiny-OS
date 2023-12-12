@@ -9,7 +9,7 @@ AS = nasm
 CC = gcc
 LD = ld
 
-LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/
+LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/ -I shell/
 ASFLAGS = -f elf
 CFLAGS = -m32 -Wall $(LIB) -c -fno-builtin -fno-stack-protector
 LDFLAGS= -m elf_i386 -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_DIR)/kernel.map
@@ -23,12 +23,13 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o  \
 		 $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall_init.o $(BUILD_DIR)/syscall.o \
 		 $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio_kernel.o $(BUILD_DIR)/ide.o \
 		 $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o \
-		 $(BUILD_DIR)/fork.o
+		 $(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o
 
 ################## compile C program ##################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h \
-	fs/fs.h lib/user/syscall.h userprog/process.h userprog/syscall_init.h kernel/memory.h \
-	device/io_queue.h  kernel/init.h kernel/debug.h device/keyboard.h lib/stdio.h kernel/interrupt.h
+	fs/fs.h fs/dir.h lib/user/syscall.h userprog/process.h userprog/syscall_init.h kernel/memory.h \
+	device/io_queue.h  kernel/init.h kernel/debug.h device/keyboard.h lib/stdio.h kernel/interrupt.h \
+	shell/shell.c lib/user/syscall.h lib/kernel/stdio_kernel.h device/console.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/init.o: kernel/init.c kernel/init.h kernel/interrupt.h kernel/global.h \
@@ -131,6 +132,9 @@ $(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/i
 
 $(BUILD_DIR)/fork.o: userprog/fork.c userprog/fork.h userprog/process.h thread/thread.h kernel/debug.h fs/dir.h \
 	fs/file.h fs/fs.h fs/inode.h kernel/interrupt.h lib/kernel/list.h lib/stdint.h kernel/memory.h kernel/global.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/shell.o: shell/shell.c shell/shell.h fs/file.h lib/stdint.h lib/stdio.h lib/user/syscall.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## assemble assembly ##################
