@@ -4,7 +4,7 @@
  */
 
 #include "string.h"
-#include "debug.h"
+#include "assert.h"
 #include "global.h"
 
 /**
@@ -17,7 +17,7 @@
  * can access, Otherwise it will lead to illegal memory access.
  */
 void memset(void *dst, uint8_t value, uint32_t size) {
-  ASSERT(dst != NULL);
+  assert(dst != NULL);
   uint8_t *dst_in_byte = (uint8_t *)dst;
   while (size-- > 0)
     *dst_in_byte++ = value;
@@ -34,7 +34,7 @@ void memset(void *dst, uint8_t value, uint32_t size) {
  * result in illegal memory access.
  */
 void memcpy(void *dst, const void *src, uint32_t size) {
-  ASSERT(dst != NULL && src != NULL);
+  assert(dst != NULL && src != NULL);
   uint8_t *dst_in_byte = (uint8_t *)dst;
   const uint8_t *src_in_byte = (uint8_t *)src;
   while (size-- > 0) {
@@ -52,7 +52,7 @@ void memcpy(void *dst, const void *src, uint32_t size) {
  * representing which is greater if they do not.
  */
 int memcmp(const void *a, const void *b, unsigned long size) {
-  ASSERT(a != NULL && b != NULL);
+  assert(a != NULL && b != NULL);
   const char *a_in_char = a;
   const char *b_in_char = b;
   while (size-- > 0) {
@@ -73,7 +73,7 @@ int memcmp(const void *a, const void *b, unsigned long size) {
  * Return: a pointer to the destination string dst.
  */
 char *strcpy(char *dst, const char *src) {
-  ASSERT(dst != NULL && src != NULL);
+  assert(dst != NULL && src != NULL);
   char *ret = dst;
   while ((*dst++ = *src++))
     ;
@@ -89,7 +89,7 @@ char *strcpy(char *dst, const char *src) {
  * Return: the number of characters in the string pointed to by str.
  */
 uint32_t strlen(const char *str) {
-  ASSERT(str != NULL);
+  assert(str != NULL);
   const char *p = str;
   while (*p++)
     ;
@@ -106,7 +106,7 @@ uint32_t strlen(const char *str) {
  * greater than the string pointed to by b.
  */
 int8_t strcmp(const char *a, const char *b) {
-  ASSERT(a != NULL && b != NULL);
+  assert(a != NULL && b != NULL);
   while (*a != 0 && *a == *b) {
     ++a;
     ++b;
@@ -125,7 +125,7 @@ int8_t strcmp(const char *a, const char *b) {
  * Return: a pointer to the resulting string dst.
  */
 char *strcat(char *dst, const char *src) {
-  ASSERT(dst != NULL && src != NULL);
+  assert(dst != NULL && src != NULL);
 
   char *iter_dst = dst;
   while (*iter_dst++)
@@ -147,7 +147,7 @@ char *strcat(char *dst, const char *src) {
  * str, or NULL if the character is not found.
  */
 char *strchr(const char *str, const uint8_t ch) {
-  ASSERT(str != NULL);
+  assert(str != NULL);
   while (*str != 0 && *str != ch)
     ++str;
   return *str == ch ? (char *)str : NULL;
@@ -163,7 +163,7 @@ char *strchr(const char *str, const uint8_t ch) {
  * str, or NULL if the character is not found.
  */
 char *strrchr(const char *str, int ch) {
-  ASSERT(str != NULL);
+  assert(str != NULL);
   const char *last_ch = NULL;
   while (*str != 0) {
     if (*str == ch)
@@ -183,7 +183,7 @@ char *strrchr(const char *str, int ch) {
  * to by src.
  */
 uint32_t strchrs(const char *src, uint8_t ch) {
-  ASSERT(src != NULL);
+  assert(src != NULL);
   int32_t ch_cnt = 0;
   const char *p = src;
   while (*p != 0) {

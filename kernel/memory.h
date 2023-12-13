@@ -72,4 +72,6 @@ void *sys_malloc(uint32_t _size);
 void sys_free(void *ptr);
 void *get_page_to_vaddr_without_bitmap(enum pool_flags pf, uint32_t vaddr);
 void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt);
+uint32_t *pte_ptr(uint32_t vaddr);
+uint32_t *pde_ptr(uint32_t vaddr);
 #endif

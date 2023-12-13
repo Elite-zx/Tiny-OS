@@ -2,6 +2,7 @@
  * Author: Zhang Xun
  * Time: 2023-12-11
  */
+#include "assert.h"
 #include "buildin_cmd.h"
 #include "debug.h"
 #include "file.h"
@@ -9,6 +10,7 @@
 #include "global.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "stdio_kernel.h"
 #include "string.h"
 #include "syscall.h"
 
@@ -123,10 +125,11 @@ void zx_shell() {
     argc = -1;
     argc = cmd_parse(cmd_line, argv, ' ');
     if (argc == -1) {
-      printf("number of parameters exceeds maximum allowed (%d) \n",
+      printf("zx shell: number of parameters exceeds maximum allowed (%d) \n",
              MAX_ARG_NR);
       continue;
     }
+    /* handle build-in command  */
     if (!strcmp("ls", argv[0])) {
       buildin_ls(argc, argv);
     } else if (!strcmp("cd", argv[0])) {
@@ -147,8 +150,38 @@ void zx_shell() {
     } else if (!strcmp("rm", argv[0])) {
       buildin_rm(argc, argv);
     } else {
-      printf("command not found: %s\n", argv[0]);
+      /******** handle external command ********/
+
+      /* fork a child process first and then call execv to execute the
+       * command (which means replacing the process body of the child
+       * process with the program corresponding to the command) */
+      int32_t pid = fork();
+      if (pid) {
+        /* parent process is diling (idle) */
+        while (1)
+          ;
+      } else {
+        /* using execv to load program (corresponding to the command) */
+        make_clear_abs_path(argv[0], final_path);
+        argv[0] = final_path;
+        struct stat file_stat;
+        memset(&file_stat, 0, sizeof(struct stat));
+        /* check if the program exists  */
+        if (stat(argv[0], &file_stat) == -1) {
+          printf("zx shell: command not found: %s\n", argv[0]);
+        } else {
+          execv(argv[0], argv);
+        }
+        /** while (1) */
+        /**   ; */
+      }
+    }
+    /******** reset argument list argv ********/
+    int32_t arg_idx = 0;
+    while (arg_idx < MAX_ARG_NR) {
+      argv[arg_idx] = NULL;
+      arg_idx++;
     }
   }
-  PANIC("shell: you should't be here :‑( !");
+  PANIC("zx shell: you should't be here :‑( !");
 }

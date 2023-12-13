@@ -1,4 +1,4 @@
-##################
+############
 # Author: Zhang Xun
 # Time: 2023-12-04
 ##################
@@ -23,7 +23,8 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o  \
 		 $(BUILD_DIR)/process.o $(BUILD_DIR)/syscall_init.o $(BUILD_DIR)/syscall.o \
 		 $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio_kernel.o $(BUILD_DIR)/ide.o \
 		 $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/file.o \
-		 $(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o
+		 $(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o \
+		 $(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o
 
 ################## compile C program ##################
 $(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h lib/stdint.h kernel/init.h thread/thread.h \
@@ -50,7 +51,7 @@ $(BUILD_DIR)/debug.o: kernel/debug.c kernel/debug.h lib/stdint.h \
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/string.o: lib/string.c lib/string.h  lib/stdint.h \
-kernel/debug.h  kernel/global.h
+lib/user/assert.h kernel/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h lib/stdint.h \
@@ -130,14 +131,20 @@ $(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h fs/dir.h fs/inode.h fs/super_block.h device/i
 	lib/kernel/stdio_kernel.h kernel/memory.h kernel/global.h kernel/debug.h
 	$(CC) $(CFLAGS) $< -o $@
 
+$(BUILD_DIR)/assert.o: lib/user/assert.c lib/user/assert.h lib/stdio.h
+	$(CC) $(CFLAGS) $< -o $@
+
 $(BUILD_DIR)/fork.o: userprog/fork.c userprog/fork.h userprog/process.h thread/thread.h kernel/debug.h fs/dir.h \
 	fs/file.h fs/fs.h fs/inode.h kernel/interrupt.h lib/kernel/list.h lib/stdint.h kernel/memory.h kernel/global.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/shell.o: shell/shell.c shell/shell.h fs/file.h lib/stdint.h lib/stdio.h lib/user/syscall.h
+$(BUILD_DIR)/shell.o: shell/shell.c shell/shell.h fs/file.h lib/stdint.h lib/stdio.h lib/user/syscall.h lib/user/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h kernel/debug.h fs/dir.h fs/fs.h lib/string.h lib/user/syscall.h lib/string.h kernel/global.h
+$(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h kernel/debug.h fs/dir.h fs/fs.h lib/string.h lib/user/syscall.h lib/string.h kernel/global.h lib/user/assert.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/exec.o: userprog/exec.c userprog/exec.h fs/fs.h kernel/global.h kernel/memory.h lib/string.h lib/stdint.h thread/thread.h  lib/kernel/list.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ################## assemble assembly ##################

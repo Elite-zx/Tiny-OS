@@ -232,7 +232,7 @@ static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
  * entry in the page (The high 10 bits of vaddr should be 1 to access this PDE)
  * directory to access the page directory itself, thus enabling the calculation
  * of the virtual address that can be used to access the appropriate PTE within
- * the page table.
+ * the page table. See Page.391 for details.
  *
  * Return: The virtual address of the page table entry corresponding to the
  * given virtual address.
@@ -255,7 +255,8 @@ uint32_t *pte_ptr(uint32_t vaddr) {
  * determination of the virtual address that can be used to access the correct
  * PDE. The calculation is done by starting from a fixed high memory location
  * (0xfffff000) which represents the starting address of PDE and applying an
- * offset based on the `vaddr` to reach the specific PDE.
+ * offset based on the `vaddr` to reach the specific PDE. See Page.392 for
+ * details.
  *
  * Return: The virtual address of the page directory entry corresponding to the
  * given virtual address.

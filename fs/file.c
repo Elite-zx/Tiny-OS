@@ -518,6 +518,26 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
   return bytes_written_cnt;
 }
 
+/**
+ * file_read() - Read a specified number of bytes from a file into a buffer.
+ * @file: The file structure pointer representing the file to be read.
+ * @buf: The buffer where the read bytes will be stored.
+ * @count: The number of bytes to read from the file.
+ *
+ * This function reads 'count' bytes from the file indicated by 'file' into the
+ * buffer 'buf'. The reading process handles files with content spread across
+ * multiple disk sectors. If the requested number of bytes exceeds the remaining
+ * readable content of the file, it adjusts the size to read only the available
+ * data. The function also handles the transition from direct to indirect block
+ * addresses if the file spans across multiple blocks. It returns the actual
+ * number of bytes read. If the file pointer reaches the end of the file, it
+ * returns -1 to indicate that no more data can be read.
+ *
+ * Context: Typically used in file systems to read data from files with a focus
+ * on handling files that span multiple blocks and potentially use indirect
+ * addressing. Return: The number of bytes actually read, or -1 if the end of
+ * the file is reached.
+ */
 int32_t file_read(struct file *file, void *buf, uint32_t count) {
   uint32_t size = count;
   uint32_t size_left = size;
@@ -570,11 +590,11 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
     if (block_read_end_idx < 12) {
       /** 1. blocks to be read are all direct blocks **/
       block_idx = block_read_start_idx;
-      while (block_idx < block_read_end_idx) {
+      while (block_idx <= block_read_end_idx) {
         all_blocks_addr[block_idx] = file->fd_inode->i_blocks[block_idx];
         block_idx++;
       }
-    } else if (block_read_start_idx < 12 && block_read_end_idx > 12) {
+    } else if (block_read_start_idx < 12 && block_read_end_idx >= 12) {
       /** 2. blocks to be read spans direct and indirect blocks **/
       block_idx = block_read_start_idx;
       while (block_idx < 12) {

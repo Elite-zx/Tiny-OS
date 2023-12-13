@@ -6,6 +6,8 @@
 #include "debug.h"
 #include "dir.h"
 #include "fs.h"
+#include "global.h"
+#include "ide.h"
 #include "init.h"
 #include "interrupt.h"
 #include "io_queue.h"
@@ -29,9 +31,32 @@ void u_prog_b(void);
 int prog_a_pid = 0;
 int prog_b_pid = 0;
 
+extern struct ide_channel channels[2];
+
 int main() {
   put_str("I am kernel\n");
   init_all();
+
+  uint32_t file_size = 14220;
+  uint32_t sector_cnt = DIV_ROUND_UP(file_size, SECTOR_SIZE);
+
+  /* hd60M.img  */
+  struct disk *sda = &channels[0].devices[0];
+
+  /* read the user process into prog_buf  */
+  void *prog_buf = sys_malloc(file_size);
+  ide_read(sda, 300, prog_buf, sector_cnt);
+
+  int32_t fd = sys_open("/prog_no_arg", O_CREAT | O_RDWR);
+  if (fd != -1) {
+    /* Write the user process to the file prog_no_arg */
+    if (sys_write(fd, prog_buf, file_size) == -1) {
+      printk("file write error!\n");
+      while (1)
+        ;
+    }
+  }
+
   sys_clear();
   console_put_str("[Pench@localhost /]$ ");
   intr_enable();
@@ -63,12 +88,9 @@ void u_prog_b(void) {
 void init() {
   uint32_t ret_pid = fork();
   if (ret_pid) {
-
-    printf("hello!\n");
     while (1)
       ;
   } else {
-    printf("run zx shell!\n");
     zx_shell();
   }
   PANIC("init: something wrong!");

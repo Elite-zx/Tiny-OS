@@ -9,6 +9,7 @@
 #include "stdint.h"
 
 #define MAX_FILES_OPEN_PER_PROC 8
+#define TASK_NAME_LEN 16
 
 typedef void thread_func(void *);
 typedef int16_t pid_t;
@@ -95,7 +96,7 @@ struct task_struct {
   pid_t pid;
   enum task_status status;
   uint8_t priority;
-  char name[16];
+  char name[TASK_NAME_LEN];
 
   uint8_t ticks;
   uint32_t elapsed_ticks;

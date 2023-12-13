@@ -3,6 +3,7 @@
  * Time: 2023-12-12
  */
 #include "buildin_cmd.h"
+#include "assert.h"
 #include "debug.h"
 #include "dir.h"
 #include "fs.h"
