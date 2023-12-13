@@ -258,9 +258,11 @@ static void print_in_format(char *buf, int32_t buf_len, void *ptr,
   switch (format_flag) {
   case 's':
     buf_idx = sprintf(buf, "%s", ptr);
+    break;
   case 'd':
     /* for pid ( with type int16_t )  */
     buf_idx = sprintf(buf, "%d", *((int16_t *)ptr));
+    break;
   case 'x':
     buf_idx = sprintf(buf, "%x", *((uint32_t *)ptr));
   }
@@ -281,7 +283,7 @@ static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
   print_in_format(output_buf, 16, &pthread->pid, 'd');
   /* print parent pid  */
   if (pthread->parent_pid == -1) {
-    print_in_format(output_buf, 16, NULL, 's');
+    print_in_format(output_buf, 16, "NULL", 's');
   } else {
     print_in_format(output_buf, 16, &pthread->parent_pid, 'd');
   }
@@ -289,14 +291,19 @@ static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
   switch (pthread->status) {
   case 0:
     print_in_format(output_buf, 16, "RUNNING", 's');
+    break;
   case 1:
     print_in_format(output_buf, 16, "READY", 's');
+    break;
   case 2:
     print_in_format(output_buf, 16, "BLOCKED", 's');
+    break;
   case 3:
     print_in_format(output_buf, 16, "WAITING", 's');
+    break;
   case 4:
     print_in_format(output_buf, 16, "HANGING", 's');
+    break;
   case 5:
     print_in_format(output_buf, 16, "DIED", 's');
   }
@@ -312,7 +319,8 @@ static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
 }
 
 void sys_ps() {
-  char *ps_title = "PID      PPID      STAT      TICKS      COMMAND\n";
+  char *ps_title = "PID            PPID           STAT           TICKS   "
+                   "     COMMAND\n";
   sys_write(STDOUT_NO, ps_title, strlen(ps_title));
   /* print task info for all tasks  */
   list_traversal(&thread_all_list, print_task_info, 0);

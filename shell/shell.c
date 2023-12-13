@@ -130,15 +130,24 @@ void zx_shell() {
     if (!strcmp("ls", argv[0])) {
       buildin_ls(argc, argv);
     } else if (!strcmp("cd", argv[0])) {
-        if (buildin_cd(argc, argv) != NULL) {
-          memset(cwd_buf, 0, MAX_PATH_LEN);
-          strcpy(cwd_buf, final_path);
-        }
+      if (buildin_cd(argc, argv) != NULL) {
+        memset(cwd_buf, 0, MAX_PATH_LEN);
+        strcpy(cwd_buf, final_path);
       }
-    else if (!strcmp("pwd", argv[0])) {
+    } else if (!strcmp("pwd", argv[0])) {
       buildin_pwd(argc, argv);
+    } else if (!strcmp("ps", argv[0])) {
+      buildin_ps(argc, argv);
+    } else if (!strcmp("clear", argv[0])) {
+      buildin_clear(argc, argv);
+    } else if (!strcmp("mkdir", argv[0])) {
+      buildin_mkdir(argc, argv);
+    } else if (!strcmp("rmdir", argv[0])) {
+      buildin_rmdir(argc, argv);
+    } else if (!strcmp("rm", argv[0])) {
+      buildin_rm(argc, argv);
     } else {
-      printf("command not found: %s", argv[0]);
+      printf("command not found: %s\n", argv[0]);
     }
   }
   PANIC("shell: you should't be here :‑( !");

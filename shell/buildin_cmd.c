@@ -1,3 +1,8 @@
+/*
+ * Author: Zhang Xun
+ * Time: 2023-12-12
+ */
+#include "buildin_cmd.h"
 #include "debug.h"
 #include "dir.h"
 #include "fs.h"
@@ -120,7 +125,7 @@ void buildin_pwd(uint32_t argc, char **argv UNUSED) {
 char *buildin_cd(uint32_t argc, char **argv) {
   /* too much argument  */
   if (argc > 2) {
-    printf("cd: only support 1 argument!\n");
+    printf("cd: too many arguments!\n");
     return NULL;
   }
 
@@ -155,9 +160,9 @@ void buildin_ls(uint32_t argc, char **argv) {
       if (!strcmp(argv[arg_idx], "-l")) {
         long_info = true;
       } else if (!strcmp(argv[arg_idx], "--help")) {
-        printf("usage:ls [OPTION]... [FILE]...\n  list all files in the "
-               "current directory if no option\n  -l      list all all "
-               "information\n  --help      for help\n");
+        printf("Usage: ls [OPTION]... [FILE]...\nlist all files in the "
+               "current directory if no option\n\n  -l            list all all "
+               "information\n  --help        for help\n");
         return;
       } else {
         printf("ls: invalid option %s\nMore info with: 'ls --help'.\n",
@@ -168,9 +173,9 @@ void buildin_ls(uint32_t argc, char **argv) {
       /******** handle path argument ********/
       if (arg_path_nr == 0) {
         pathname = argv[arg_idx];
-        arg_path_nr = 0;
+        arg_path_nr = 1;
       } else {
-        printf("ls: only support one path\n");
+        printf("ls: too many arguments\n");
         return;
       }
     }
@@ -254,4 +259,73 @@ void buildin_ls(uint32_t argc, char **argv) {
       printf("%s\n", pathname);
     }
   }
+}
+
+void buildin_ps(uint32_t argc, char **argv UNUSED) {
+  if (argc != 1) {
+    printf("ps: too many arguments\n");
+    return;
+  }
+  ps();
+}
+void buildin_clear(uint32_t argc, char **argv UNUSED) {
+  if (argc != 1) {
+    printf("clear: too many arguments\n");
+    return;
+  }
+  clear();
+}
+
+int32_t buildin_mkdir(uint32_t argc, char **argv) {
+  int32_t ret_val = -1;
+  if (argc != 2) {
+    printf("mkdir: too many arguments\n");
+  } else {
+    make_clear_abs_path(argv[1], final_path);
+    if (strcmp("/", final_path)) {
+      /* Not the root directory  */
+      if (mkdir(final_path) == 0) {
+        ret_val = 0;
+      } else {
+        printf("mkdir: create directory %s failed.\n", argv[1]);
+      }
+    }
+  }
+  return ret_val;
+}
+
+int32_t buildin_rmdir(uint32_t argc, char **argv) {
+  int32_t ret_val = -1;
+  if (argc != 2) {
+    printf("rmdir: too many arguments\n");
+  } else {
+    make_clear_abs_path(argv[1], final_path);
+    if (strcmp("/", final_path)) {
+      /* Not the root directory  */
+      if (rmdir(final_path) == 0) {
+        ret_val = 0;
+      } else {
+        printf("rmdir: remove directory %s failed.\n", argv[1]);
+      }
+    }
+  }
+  return ret_val;
+}
+
+int32_t buildin_rm(uint32_t argc, char **argv) {
+  int32_t ret_val = -1;
+  if (argc != 2) {
+    printf("rm: too many arguments\n");
+  } else {
+    make_clear_abs_path(argv[1], final_path);
+    if (strcmp("/", final_path)) {
+      /* Not the root directory  */
+      if (unlink(final_path) == 0) {
+        ret_val = 0;
+      } else {
+        printf("rm: delete %s failed.\n", argv[1]);
+      }
+    }
+  }
+  return ret_val;
 }

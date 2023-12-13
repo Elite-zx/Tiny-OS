@@ -1042,9 +1042,7 @@ int32_t sys_rmdir(const char *pathname) {
     } else {
       struct dir *dir = dir_open(cur_part, inode_NO);
       if (!dir_is_empty(dir)) {
-        printk("dir %s is not empty, it is not allowed to delete a nonempty "
-               "directory!\n",
-               pathname);
+        printk("Directory %s is not empty\n", pathname);
       } else {
         if (!dir_remove(searched_record.parent_dir, dir)) {
           ret_val = 0;
@@ -1266,9 +1264,10 @@ int32_t sys_stat(const char *path, struct stat *buf) {
     buf->st_ino = inode_NO;
     inode_close(target_inode);
     ret_val = 0;
-  } else {
-    printk("sys_stat: %s not found\n", path);
   }
+  /** else { */
+  /**   printk("sys_stat: %s not found\n", path); */
+  /** } */
   dir_close(searched_record.parent_dir);
   return ret_val;
 }
