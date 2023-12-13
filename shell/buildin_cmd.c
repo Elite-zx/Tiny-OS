@@ -122,6 +122,21 @@ void buildin_pwd(uint32_t argc, char **argv UNUSED) {
   }
 }
 
+/**
+ * buildin_cd() - The built-in function for the 'cd' command in a shell.
+ * @argc: The number of arguments passed to the command.
+ * @argv: An array of strings representing the arguments passed to the command.
+ *
+ * This function implements the 'cd' (change directory) command. It changes the
+ * current working directory of the process to the directory specified in
+ * argv[1]. If no argument is provided (argc == 1), it changes the directory to
+ * the root ('/'). It also handles error checking for too many arguments or
+ * invalid directory paths.
+ *
+ * Context: Typically used in a shell environment where users can change the
+ * current working directory using the 'cd' command. Return: Returns the new
+ * absolute path after changing directories, or NULL if an error occurs.
+ */
 char *buildin_cd(uint32_t argc, char **argv) {
   /* too much argument  */
   if (argc > 2) {
@@ -146,6 +161,22 @@ char *buildin_cd(uint32_t argc, char **argv) {
   return final_path;
 }
 
+/**
+ * buildin_ls() - The built-in function for the 'ls' command in a shell.
+ * @argc: The number of arguments passed to the command.
+ * @argv: An array of strings representing the arguments passed to the command.
+ *
+ * This function implements the 'ls' (list) command. It lists the contents of a
+ * directory specified by the user, or the current directory if no path is
+ * given. The function supports options '-l' for long listing format and '-help'
+ * for help information. It handles displaying directory entries, their inode
+ * numbers, and file sizes, and optionally includes additional information in
+ * long format.
+ *
+ * Context: Used in a shell environment to list the contents of directories and
+ * provide information about files. It emulates the common behavior of the Unix
+ * 'ls' command.
+ */
 void buildin_ls(uint32_t argc, char **argv) {
   char *pathname = NULL;
   struct stat file_stat;
@@ -218,6 +249,7 @@ void buildin_ls(uint32_t argc, char **argv) {
     /* make sure there is a path delimiter '\' at the end of sub_pathname,
      * because the file name in the directory will be appended later.  */
     if (sub_pathname[last_char_idx] != '/') {
+      sub_pathname[pathname_len] = '/';
       pathname_len++;
     }
 

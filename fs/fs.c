@@ -1245,6 +1245,7 @@ int32_t sys_chdir(const char *path) {
  * Return: 0 on success, -1 if the file or directory does not exist.
  */
 int32_t sys_stat(const char *path, struct stat *buf) {
+  /******** path is root directory ********/
   if (!strcmp(path, "/") || !strcmp(path, "/.") || !strcmp(path, "/..")) {
     buf->st_filetype = FT_DIRECTORY;
     buf->st_ino = 0;
@@ -1265,6 +1266,7 @@ int32_t sys_stat(const char *path, struct stat *buf) {
     inode_close(target_inode);
     ret_val = 0;
   }
+  /* for better effect to 'ls' command, comment here  */
   /** else { */
   /**   printk("sys_stat: %s not found\n", path); */
   /** } */
