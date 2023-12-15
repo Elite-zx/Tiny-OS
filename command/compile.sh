@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 if [[ ! -d "../lib" || ! -d "../build" ]]; then
   echo "dependent dir don\`t exist!"
   cwd=$(pwd)
@@ -10,7 +12,7 @@ if [[ ! -d "../lib" || ! -d "../build" ]]; then
 fi
 
 BIN="prog_no_arg"
-CFLAGS="-m32 -Wall -c -fno-builtin -W -Wsystem-headers"
+CFLAGS="-m32 -Wall -c -fno-builtin -W -Wsystem-headers -fno-stack-protector "
 LIB="../lib/"
 OBJS="../build/string.o ../build/syscall.o \
       ../build/stdio.o ../build/assert.o"

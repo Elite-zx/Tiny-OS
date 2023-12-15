@@ -48,11 +48,22 @@ struct pool kernel_pool, user_pool;
 struct virtual_addr kernel_vaddr;
 
 /**
- * arena - arena meta info
- * @desc: ponter to memory block descriptor
- * @cnt: if large is true, cnt represents the number of page frames, otherwise
- * it represents the number of free memory blocks in arena
- * @large_mb: related with cnt
+ * struct arena - Metadata for memory storage arena.
+ * @desc: Pointer to the associated memory block descriptor.
+ * @cnt:  The count of items in this arena, which has different meanings based
+ * on the value of 'large'. If 'large' is true, 'cnt' represents the number of
+ * page frames. Otherwise, it represents the number of free memory blocks.
+ * @large: A boolean flag indicating the type of items this arena holds.
+ *         When true, the arena is used for allocations larger than a certain
+ * threshold (typically 1024 bytes), and 'cnt' represents the number of page
+ * frames. When false, the arena holds smaller memory blocks, and 'cnt'
+ * represents the count of these free blocks.
+ *
+ * This structure represents an arena in memory, which is a part of a dynamic
+ * memory allocation system. An arena can either hold multiple small memory
+ * blocks or a few larger blocks (page frames), depending on the allocation
+ * request size. This flexibility allows efficient memory usage for different
+ * allocation sizes.
  */
 struct arena {
   struct mem_block_desc *desc;
@@ -454,8 +465,10 @@ void *get_a_page(enum pool_flags pf, uint32_t vaddr) {
     PANIC("Unable to establish mapping between pf and vaddr");
   }
   void *page_phy_addr = palloc(mem_pool);
-  if (page_phy_addr == NULL)
+  if (page_phy_addr == NULL) {
+    lock_release(&mem_pool->_lock);
     return NULL;
+  }
   page_table_add((void *)vaddr, page_phy_addr);
   lock_release(&mem_pool->_lock);
   return (void *)vaddr;
@@ -516,8 +529,27 @@ static struct arena *block_2_arena(struct mem_block *mb) {
 }
 
 /**
- * sys_malloc() - Allocate memory of the given size for user or kernel.
- * @_size: The size of memory to be allocated.
+ * sys_malloc() - Allocate memory in the heap.
+ * @size: The number of bytes to allocate.
+ *
+ * This function allocates 'size' bytes of memory from the appropriate memory
+ * pool, either for a kernel thread or a user process, based on the running
+ * thread's context. It handles allocations larger than 1024 bytes by allocating
+ * page frames, and smaller allocations by finding a suitable memory block size
+ * from the memory block descriptors. The function returns a pointer to the
+ * allocated memory, or NULL if the allocation fails.
+ *
+ * If the allocation size exceeds the memory pool size or is non-positive, it
+ * returns NULL. For large allocations (size > 1024), it allocates whole page
+ * frames. For smaller sizes, it uses pre-defined memory block sizes to find a
+ * fit. If no blocks are available, it allocates a new memory arena (page frame)
+ * and splits it into blocks, adding them to the free list of the corresponding
+ * memory block descriptor. The allocated memory is zeroed before returning.
+ *
+ * Context: This function is used in the implementation of a dynamic memory
+ * allocator for an operating system, handling both kernel and user memory
+ * requests. Return: Pointer to the allocated memory or NULL if the allocation
+ * fails.
  */
 void *sys_malloc(uint32_t _size) {
   enum pool_flags PF;
@@ -526,7 +558,7 @@ void *sys_malloc(uint32_t _size) {
   struct mem_block_desc *desc;
   struct task_struct *cur_thread = running_thread();
 
-  /* kernel thread or user process  */
+  /******** Determine whether it is kernel thread or user process  ********/
   if (cur_thread->pg_dir == NULL) {
     PF = PF_KERNEL;
     pool_size = kernel_pool.pool_size;
@@ -547,6 +579,7 @@ void *sys_malloc(uint32_t _size) {
   lock_acquire(&mem_pool->_lock);
 
   if (_size > 1024) {
+    /******** allocate large memory ********/
     uint32_t pg_cnt = DIV_ROUND_UP(_size + sizeof(struct arena), PAGE_SIZE);
     a = malloc_page(PF, pg_cnt);
     if (a != NULL) {
@@ -555,20 +588,24 @@ void *sys_malloc(uint32_t _size) {
       a->cnt = pg_cnt;
       a->large_mb = true;
       lock_release(&mem_pool->_lock);
+      /* the '+1' here is to skip over the metadata of arena */
       return (void *)(a + 1);
     } else {
       lock_release(&mem_pool->_lock);
       return NULL;
     }
   } else {
+    /******** allocate small memory ********/
+
     /* find proper memory block from small to large  */
     uint8_t desc_idx;
     for (desc_idx = 0; desc_idx < MB_DESC_CNT; desc_idx++) {
       if (_size <= desc[desc_idx].block_size)
         break;
     }
+
     if (list_empty(&desc[desc_idx].free_list)) {
-      /* new arena */
+      /* no available blocks, allocate new arena */
       a = malloc_page(PF, 1);
       if (a == NULL) {
         lock_release(&mem_pool->_lock);
@@ -712,7 +749,6 @@ void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
       page_phy_addr = addr_v2p(vaddr);
       ASSERT((page_phy_addr % PAGE_SIZE) == 0 &&
              page_phy_addr >= user_pool.phy_addr_start);
-
       pfree(page_phy_addr);
       page_table_pte_remove(vaddr);
       vaddr += PAGE_SIZE;
@@ -815,8 +851,10 @@ void *get_page_to_vaddr_without_bitmap(enum pool_flags pf, uint32_t vaddr) {
   lock_acquire(&mem_pool->_lock);
 
   void *page_phy_addr = palloc(mem_pool);
-  if (page_phy_addr == NULL)
+  if (page_phy_addr == NULL) {
+    lock_release(&mem_pool->_lock);
     return NULL;
+  }
   page_table_add((void *)vaddr, page_phy_addr);
   lock_release(&mem_pool->_lock);
   return (void *)vaddr;

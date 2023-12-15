@@ -35,7 +35,11 @@ static int32_t copy_PCB_and_vaddr_bitmap(struct task_struct *child_thread,
   uint32_t bitmap_pg_cnt =
       DIV_ROUND_UP((0xc0000000 - USER_VADDR_START) / PAGE_SIZE / 8, PAGE_SIZE);
   void *vaddr_bitmap = get_kernel_pages(bitmap_pg_cnt);
-/* copy the bitmap of virtual address pool of parent process to child process    */
+
+  if (vaddr_bitmap == NULL)
+    return -1;
+  /* copy the bitmap of virtual address pool of parent process to child process
+   */
   memcpy(vaddr_bitmap, child_thread->userprog_vaddr.vaddr_bitmap.bits,
          PAGE_SIZE * bitmap_pg_cnt);
   child_thread->userprog_vaddr.vaddr_bitmap.bits = vaddr_bitmap;
@@ -54,7 +58,7 @@ static void copy_body_and_userstack(struct task_struct *child_thread,
       parent_thread->userprog_vaddr.vaddr_bitmap.bmap_bytes_len;
   uint32_t vaddr_start = parent_thread->userprog_vaddr.vaddr_start;
   uint32_t idx_byte = 0;
-  uint32_t idx_bit;
+  uint32_t idx_bit = 0;
   uint32_t data_page_vaddr = 0;
 
   /******** find pages with data in parent process and copy them page by page to
@@ -136,12 +140,15 @@ static void update_inode_open_cnt(struct task_struct *thread) {
 static int32_t copy_process(struct task_struct *child_thread,
                             struct task_struct *parent_thread) {
   void *buf_page = get_kernel_pages(1);
-  if (buf_page == NULL) return -1;
+  if (buf_page == NULL)
+    return -1;
 
-  if (copy_PCB_and_vaddr_bitmap(child_thread, parent_thread) == -1) return -1;
+  if (copy_PCB_and_vaddr_bitmap(child_thread, parent_thread) == -1)
+    return -1;
 
   child_thread->pg_dir = create_page_dir();
-  if (child_thread->pg_dir == NULL) return -1;
+  if (child_thread->pg_dir == NULL)
+    return -1;
 
   copy_body_and_userstack(child_thread, parent_thread, buf_page);
   build_child_kernel_stack(child_thread);
@@ -154,17 +161,19 @@ pid_t sys_fork() {
   struct task_struct *parent_thread = running_thread();
   struct task_struct *child_thread = get_kernel_pages(1);
 
-  if (child_thread == NULL)  return -1;
+  if (child_thread == NULL)
+    return -1;
 
-  ASSERT(INTR_OFF==intr_get_status()&&parent_thread->pg_dir!=NULL);
+  ASSERT(INTR_OFF == intr_get_status() && parent_thread->pg_dir != NULL);
 
-  if (copy_process(child_thread, parent_thread) ==-1) return -1;
+  if (copy_process(child_thread, parent_thread) == -1)
+    return -1;
 
   ASSERT(!list_elem_find(&thread_ready_list, &child_thread->general_tag));
   list_append(&thread_ready_list, &child_thread->general_tag);
   ASSERT(!list_elem_find(&thread_all_list, &child_thread->all_list_tag));
   list_append(&thread_all_list, &child_thread->all_list_tag);
 
-/* return the pid of child process for parent process  */
-  return  child_thread->pid;
+  /* return the pid of child process for parent process  */
+  return child_thread->pid;
 }

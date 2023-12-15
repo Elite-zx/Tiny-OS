@@ -273,7 +273,7 @@ loop .clear_PDT
 ; Start creating page directory entries
 .create_PDE:
 mov eax, PAGE_DIR_TABLE_POS
-; The PDT starts from 0x10000, which itself occupies 0x1000. So the first page table is at address 0x101000
+; The PDT starts from 0x100000, which itself occupies 0x1000. So the first page table is at address 0x101000
 add eax, 0x1000
 mov ebx, eax
 or eax, PG_US_U | PG_RW_W | PG_P

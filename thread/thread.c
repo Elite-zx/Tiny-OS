@@ -29,7 +29,7 @@ extern void init();
 /* Get the PCB of the current thread  */
 struct task_struct *running_thread() {
   uint32_t esp;
-  asm volatile("mov %%esp,%0" : "=g"(esp));
+  asm("mov %%esp,%0" : "=g"(esp));
   return (struct task_struct *)(esp & 0xfffff000);
 }
 

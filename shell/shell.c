@@ -13,6 +13,7 @@
 #include "stdio_kernel.h"
 #include "string.h"
 #include "syscall.h"
+#include "thread.h"
 
 #define MAX_ARG_NR 16
 
@@ -113,6 +114,10 @@ int32_t argc = -1;
 
 void zx_shell() {
   cwd_buf[0] = '/';
+  int16_t pid = running_thread()->pid;
+  if (pid == 0) {
+    printf("\ncrazy\n");
+  }
   while (1) {
     print_prompt();
     memset(final_path, 0, MAX_PATH_LEN);
@@ -162,6 +167,7 @@ void zx_shell() {
           ;
       } else {
         /* using execv to load program (corresponding to the command) */
+        int16_t pid = running_thread()->pid;
         make_clear_abs_path(argv[0], final_path);
         argv[0] = final_path;
         struct stat file_stat;
@@ -183,5 +189,5 @@ void zx_shell() {
       arg_idx++;
     }
   }
-  PANIC("zx shell: you should't be here :‑( !");
+  panic("zx shell: you should't be here :‑( !");
 }

@@ -564,7 +564,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
 
   uint32_t block_read_start_idx = file->fd_pos / BLOCK_SIZE;
   uint32_t block_read_end_idx = (file->fd_pos + size) / BLOCK_SIZE;
-  uint32_t blocks_required_read = block_read_start_idx - block_read_end_idx;
+  uint32_t blocks_required_read = block_read_end_idx - block_read_start_idx;
   /* a file can have up to 140 blocks */
   ASSERT(block_read_start_idx < 139 && block_read_end_idx < 139);
 

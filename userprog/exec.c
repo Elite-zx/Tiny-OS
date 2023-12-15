@@ -87,7 +87,11 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t file_sz,
   while (page_idx < segment_page_count) {
     uint32_t *pde = pde_ptr(vaddr_page);
     uint32_t *pte = pte_ptr(vaddr_page);
-    /* the corresponding physical page frame doesn't exist   */
+
+    /* Determine whether the corresponding physical page frame exists by
+     * checking whether the last bit (bit Present) is 1. if you recall the
+     * implementation of function page_table_pte_remove, you will find that this
+     * is reasonable ^_^ */
     if (!(*pde & 0x00000001) || !(*pte & 0x00000001)) {
       printf("\nallocate!\n");
       /* allocate a physical page frame */
@@ -139,6 +143,7 @@ static int32_t load(const char *pathname) {
 
   printf("hello5");
   uint32_t prog_idx = 0;
+  /** struct task_struct *cur = running_thread(); */
   while (prog_idx < prog_header_entry_count) {
     memset(&prog_header, 0, prog_header_entry_size);
     sys_lseek(fd, prog_header_offset, SEEK_SET);
@@ -159,6 +164,7 @@ static int32_t load(const char *pathname) {
         ret_val = -1;
         goto done;
       }
+      /** block_desc_init(cur->u_mb_desc_arr); */
     }
     printf("hello7");
     /* next program header entry (alse means next segment ^_^)  */
@@ -179,7 +185,7 @@ int32_t sys_execv(const char *path, char *const argv[]) {
   }
   printk("hello1\n");
 
-  /******** load process from file system ********/
+  /******** load process from file system into memory ********/
   int32_t entry_point = load(path);
   if (entry_point == -1)
     return -1;

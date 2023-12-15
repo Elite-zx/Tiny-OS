@@ -37,7 +37,7 @@ int main() {
   put_str("I am kernel\n");
   init_all();
 
-  uint32_t file_size = 14220;
+  uint32_t file_size = 22624;
   uint32_t sector_cnt = DIV_ROUND_UP(file_size, SECTOR_SIZE);
 
   /* hd60M.img  */
@@ -49,7 +49,7 @@ int main() {
 
   int32_t fd = sys_open("/prog_no_arg", O_CREAT | O_RDWR);
   if (fd != -1) {
-    /* Write the user process to the file prog_no_arg */
+    /* Write the user process to the file prog_no_arg (locate in hd80M.img) */
     if (sys_write(fd, prog_buf, file_size) == -1) {
       printk("file write error!\n");
       while (1)
