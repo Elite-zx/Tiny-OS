@@ -93,10 +93,8 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t file_sz,
      * implementation of function page_table_pte_remove, you will find that this
      * is reasonable ^_^ */
     if (!(*pde & 0x00000001) || !(*pte & 0x00000001)) {
-      printf("\nallocate!\n");
       /* allocate a physical page frame */
       if (get_a_page(PF_USER, vaddr_page) == NULL) {
-        printf("error!\n");
         return false;
       }
     }
@@ -105,9 +103,8 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t file_sz,
   }
   /******** load segment into memory ********/
   sys_lseek(fd, offset, SEEK_SET);
-  printf("\nsegment_load success\n");
   sys_read(fd, (void *)vaddr, file_sz);
-  printf("test here\n");
+  /** printf("debugging: \nsegment_load success\n"); */
   return true;
 }
 
@@ -141,9 +138,8 @@ static int32_t load(const char *pathname) {
   Elf32_Half prog_header_entry_size = elf_header.e_phentsize;
   Elf32_Half prog_header_entry_count = elf_header.e_phnum;
 
-  printf("hello5");
   uint32_t prog_idx = 0;
-  /** struct task_struct *cur = running_thread(); */
+  struct task_struct *cur = running_thread();
   while (prog_idx < prog_header_entry_count) {
     memset(&prog_header, 0, prog_header_entry_size);
     sys_lseek(fd, prog_header_offset, SEEK_SET);
@@ -155,18 +151,15 @@ static int32_t load(const char *pathname) {
       ret_val = -1;
       goto done;
     }
-    printf("hello6");
 
     if (prog_header.p_type == PT_LOAD) {
       if (!segment_load(fd, prog_header.p_offset, prog_header.p_filesz,
                         prog_header.p_vaddr)) {
-        printf("\nsegment_load failed\n");
         ret_val = -1;
         goto done;
       }
-      /** block_desc_init(cur->u_mb_desc_arr); */
+      block_desc_init(cur->u_mb_desc_arr);
     }
-    printf("hello7");
     /* next program header entry (alse means next segment ^_^)  */
     prog_header_offset += prog_header_entry_size;
     prog_idx++;
@@ -183,14 +176,12 @@ int32_t sys_execv(const char *path, char *const argv[]) {
   while (argv[argc]) {
     argc++;
   }
-  printk("hello1\n");
 
   /******** load process from file system into memory ********/
   int32_t entry_point = load(path);
   if (entry_point == -1)
     return -1;
 
-  printk("hello2\n");
   /******** change the name of current process to the name of process just
    * loaded ********/
   struct task_struct *cur = running_thread();
@@ -209,7 +200,6 @@ int32_t sys_execv(const char *path, char *const argv[]) {
 
   /******** starting execute new process by pretending to return from interrupt
    * ********/
-  printk("hello3\n");
   asm volatile("movl %0, %%esp; jmp intr_exit" ::"g"(intr_stack_0) : "memory");
 
   /* make gcc happy  */

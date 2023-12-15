@@ -114,10 +114,6 @@ int32_t argc = -1;
 
 void zx_shell() {
   cwd_buf[0] = '/';
-  int16_t pid = running_thread()->pid;
-  if (pid == 0) {
-    printf("\ncrazy\n");
-  }
   while (1) {
     print_prompt();
     memset(final_path, 0, MAX_PATH_LEN);
@@ -167,7 +163,6 @@ void zx_shell() {
           ;
       } else {
         /* using execv to load program (corresponding to the command) */
-        int16_t pid = running_thread()->pid;
         make_clear_abs_path(argv[0], final_path);
         argv[0] = final_path;
         struct stat file_stat;
