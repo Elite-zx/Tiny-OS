@@ -15,14 +15,14 @@
 - 系统交互：实现了一个简单的 shell，支持基本命令执行，包括 fork 系统调用和用户进程加载器。
 - 锁机制：实现了同步机制，以支持多线程和多进程环境。
 # 开发历程
-想要了解更多关于这个项目的开发历程，请阅读我的博客，我在其中记录了从MBR到系统调用execv的整个过程：[从0开始自制操作系统](https://elite-zx.github.io/)
+想要了解更多关于这个项目的开发历程，请阅读我的博客，我在其中记录了从MBR到系统调用execv的整个过程：[从0开始自制操作系统](https://elite-zx.github.io/2023/12/15/elephont_os/build_os_from_scratch/)
 # 使用指南
 
 ## 获取代码
 克隆仓库到本地：
 ```zsh
-git clone git@github.com:Elite-zx/Build-OS-From-Scratch.git
-cd Build-OS-From-Scratch
+git clone git@github.com:Elite-zx/XUN-OS.git
+cd XUN-OS
 ```
 ## 编译和运行
 使用以下命令编译操作系统：
@@ -34,7 +34,7 @@ make all
 将编译好的内核写入硬盘镜像文件：
 
 ```zsh
-dd if=build/kernel.bin of=/home/elite-zx/bochs/hd60M.img bs=512 count=200 seek=9 conv=notrunc
+dd if=build/kernel.bin of=/path/to/bochs/hd60M.img bs=512 count=200 seek=9 conv=notrunc
 ```
 
 # 启动XUN-OS
