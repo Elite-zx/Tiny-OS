@@ -1,6 +1,7 @@
 # XUN-OS: Build Your Own Operating System
-XUN-OS is a very tiny Operating system, very suitable for beginners
+> Learning by doing
 ## Overview
+XUN-OS is a compact operating system, ideal for beginners learning the ropes of OS development. Emphasizing the adage "learning by doing", XUN-OS is an excellent starting point for those aiming to grasp OS concepts from the ground up. With detailed commentary on nearly every function, following the Linux kernel documentation style, understanding the codebase is made significantly easier, making any potential confusion minimal. This project offers a hands-on approach to understanding and constructing the fundamental aspects of an operating system.
 
 ![display](image/display.gif)
 
@@ -12,9 +13,6 @@ XUN-OS is a very tiny Operating system, very suitable for beginners
 - **File System**: Basic file system functionalities.
 - **System Interaction**: Simple shell supporting basic commands, fork system calls, and user process loaders.
 - **Lock Mechanisms**: Synchronization for multi-threading and multi-processing.
-
-## Development Journey
-For an in-depth view of the development journey from MBR to system call execv, check my blog: [Build OS from Scratch](https://elite-zx.github.io/2023/12/15/elephont_os/build_os_from_scratch/).
 
 ## Getting Started
 
