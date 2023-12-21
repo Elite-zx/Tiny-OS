@@ -1,7 +1,4 @@
-# XUN-OS
-
-[English](./README-en.md)
-
+# XUN-OS: Build Your Own Operating System
 > Learning by doing
 
 参照操作系统真象还原从0开始自制操作系统， 实现了一个小型操作系统，代码行数除去注释外大概有6千行。因为我按照[linux内核注释风格](https://www.kernel.org/doc/html/latest/doc-guide/kernel-doc.html)给90%的C函数都写了注释，所以加上注释行数，快小万行了。
