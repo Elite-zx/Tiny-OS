@@ -2,8 +2,7 @@
 # XUN-OS: Build Your Own Operating System
 > Learning by doing
 ## Overview
-
-XUN-OS is a compact operating system, ideal for beginners learning the ropes of OS development. Emphasizing the adage "learning by doing", XUN-OS is an excellent starting point for those aiming to grasp OS concepts from the ground up. With detailed commentary on nearly every function, following the Linux kernel documentation style, understanding the codebase is made significantly easier, making any potential confusion minimal. This project offers a hands-on approach to understanding and constructing the fundamental aspects of an operating system.
+For beginners in operating system development, particularly those intrigued by Linux, creating a mini Unix-like OS is an enlightening journey. XUN-OS, designed with simplicity in mind, is a compact OS that serves as an excellent reference for such endeavors. It's a practical approach for understanding OS principles, offering a glimpse into Linux-like implementations. The project, detailed in a Linux kernel style documentation, minimizes confusion and enhances comprehension. It's not just about learning theories but actually building and experimenting, which XUN-OS facilitates perfectly for anyone starting in the fascinating world of OS development.
 
 ![display](image/display.gif)
 
