@@ -1,7 +1,7 @@
-# XUN-OS: Build Your Own Operating System
+# Tiny-OS: Build Your Own Operating System
 > Learning by doing
 ## Overview
-For beginners in operating system development, particularly those intrigued by Linux, creating a mini Unix-like OS is an enlightening journey. XUN-OS, designed with simplicity in mind, is a compact OS that serves as an excellent reference for such endeavors. It's a practical approach for understanding OS principles, offering a glimpse into Linux-like implementations. The project, detailed in a Linux kernel style documentation, minimizes confusion and enhances comprehension. It's not just about learning theories but actually building and experimenting, which XUN-OS facilitates perfectly for anyone starting in the fascinating world of OS development.
+For beginners in operating system development, particularly those intrigued by Linux, creating a mini Unix-like OS is an enlightening journey. Tiny-OS, designed with simplicity in mind, is a compact OS that serves as an excellent reference for such endeavors. It's a practical approach for understanding OS principles, offering a glimpse into Linux-like implementations. The project, detailed in a Linux kernel style documentation, minimizes confusion and enhances comprehension. It's not just about learning theories but actually building and experimenting, which Tiny-OS facilitates perfectly for anyone starting in the fascinating world of OS development.
 
 ![display](image/display.gif)
 
@@ -18,8 +18,8 @@ For beginners in operating system development, particularly those intrigued by L
 
 ### Clone the Repository
 ```zsh
-git clone git@github.com:Elite-zx/XUN-OS.git
-cd XUN-OS
+git clone git@github.com:Elite-zx/Tiny-OS.git
+cd Tiny-OS
 ```
 
 ### Compile and Run
@@ -34,7 +34,7 @@ Write the compiled kernel to a disk image:
 dd if=build/kernel.bin of=/path/to/bochs/hd60M.img bs=512 count=200 seek=9 conv=notrunc
 ```
 
-### Launching XUN-OS
+### Launching Tiny-OS
 Run the OS using Bochs:
 ```zsh
 bochs -f bochsrc.disk

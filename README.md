@@ -1,5 +1,5 @@
 [English](./README-en.md)
-# XUN-OS: Build Your Own Operating System
+# Tiny-OS: Build Your Own Operating System
 > Learning by doing
 
 参照操作系统真象还原从0开始自制操作系统， 实现了一个小型操作系统，代码行数除去注释外大概有6千行。因为我按照[linux内核注释风格](https://www.kernel.org/doc/html/latest/doc-guide/kernel-doc.html)给90%的C函数都写了注释，所以加上注释行数，快小万行了。
@@ -27,8 +27,8 @@
 ## 获取代码
 克隆仓库到本地：
 ```zsh
-git clone git@github.com:Elite-zx/XUN-OS.git
-cd XUN-OS
+git clone git@github.com:Elite-zx/Tiny-OS.git
+cd Tiny-OS
 ```
 ## 编译和运行
 使用以下命令编译操作系统：
@@ -43,7 +43,7 @@ make all
 dd if=build/kernel.bin of=/path/to/bochs/hd60M.img bs=512 count=200 seek=9 conv=notrunc
 ```
 
-# 启动XUN-OS
+# 启动Tiny-OS
 使用 Bochs 模拟器运行操作系统：
 ```zsh
 bochs -f bochsrc.disk
