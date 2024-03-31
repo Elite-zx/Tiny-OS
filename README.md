@@ -2,9 +2,10 @@
 # Tiny-OS: Build Your Own Operating System
 > Learning by doing
 
-参照操作系统真象还原从0开始自制操作系统， 实现了一个小型操作系统，代码行数除去注释外大概有6千行。因为我按照[linux内核注释风格](https://www.kernel.org/doc/html/latest/doc-guide/kernel-doc.html)给90%的C函数都写了注释，所以加上注释行数，快小万行了。
+参照操作系统真象还原从0开始自制操作系统， 实现了一个小型操作系统，代码规模如下:
 
 ![Pasted image 20231216115142](image/Pasted%20image%2020231216115142.png)
+
 
 总用时大概40天，每天平均5个小时，看书+写代码+写博客记录，这个时间供大家参考。
 
@@ -20,6 +21,7 @@
 - 文件系统：实现了基本的文件系统功能。
 - 系统交互：实现了一个简单的 shell，支持基本命令执行，包括 fork 系统调用和用户进程加载器。
 - 锁机制：实现了同步机制，以支持多线程和多进程环境。
+- 完善的注释: 遵循[linux内核注释风格](https://www.kernel.org/doc/html/latest/doc-guide/kernel-doc.html)
 # 开发历程
 想要了解更多关于这个项目的开发历程，请阅读我的博客，我在其中记录了从MBR到系统调用execv的整个过程：[从0开始自制操作系统](https://zhuanlan.zhihu.com/p/674860781)
 # 使用指南

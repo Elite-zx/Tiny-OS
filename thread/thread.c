@@ -3,6 +3,9 @@
  * Time: 2023-12-01
  */
 #include "thread.h"
+
+#include <stdio.h>
+
 #include "debug.h"
 #include "file.h"
 #include "fs.h"
@@ -16,7 +19,6 @@
 #include "string.h"
 #include "switch.h"
 #include "sync.h"
-#include <stdio.h>
 
 struct task_struct *main_thread;
 struct task_struct *idle_thread;
@@ -256,15 +258,15 @@ static void print_in_format(char *buf, int32_t buf_len, void *ptr,
   memset(buf, 0, buf_len);
   uint8_t buf_idx = 0;
   switch (format_flag) {
-  case 's':
-    buf_idx = sprintf(buf, "%s", ptr);
-    break;
-  case 'd':
-    /* for pid ( with type int16_t )  */
-    buf_idx = sprintf(buf, "%d", *((int16_t *)ptr));
-    break;
-  case 'x':
-    buf_idx = sprintf(buf, "%x", *((uint32_t *)ptr));
+    case 's':
+      buf_idx = sprintf(buf, "%s", ptr);
+      break;
+    case 'd':
+      /* for pid ( with type int16_t )  */
+      buf_idx = sprintf(buf, "%d", *((int16_t *)ptr));
+      break;
+    case 'x':
+      buf_idx = sprintf(buf, "%x", *((uint32_t *)ptr));
   }
   /* fill buf with whitespace */
   while (buf_idx < buf_len) {
@@ -289,23 +291,23 @@ static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
   }
   /* print the status of task */
   switch (pthread->status) {
-  case 0:
-    print_in_format(output_buf, 16, "RUNNING", 's');
-    break;
-  case 1:
-    print_in_format(output_buf, 16, "READY", 's');
-    break;
-  case 2:
-    print_in_format(output_buf, 16, "BLOCKED", 's');
-    break;
-  case 3:
-    print_in_format(output_buf, 16, "WAITING", 's');
-    break;
-  case 4:
-    print_in_format(output_buf, 16, "HANGING", 's');
-    break;
-  case 5:
-    print_in_format(output_buf, 16, "DIED", 's');
+    case 0:
+      print_in_format(output_buf, 16, "RUNNING", 's');
+      break;
+    case 1:
+      print_in_format(output_buf, 16, "READY", 's');
+      break;
+    case 2:
+      print_in_format(output_buf, 16, "BLOCKED", 's');
+      break;
+    case 3:
+      print_in_format(output_buf, 16, "WAITING", 's');
+      break;
+    case 4:
+      print_in_format(output_buf, 16, "HANGING", 's');
+      break;
+    case 5:
+      print_in_format(output_buf, 16, "DIED", 's');
   }
   /* print elapsed_ticks  */
   print_in_format(output_buf, 16, &pthread->elapsed_ticks, 'x');
@@ -319,8 +321,9 @@ static bool print_task_info(struct list_elem *pelem, int arg UNUSED) {
 }
 
 void sys_ps() {
-  char *ps_title = "PID            PPID           STAT           TICKS   "
-                   "     COMMAND\n";
+  char *ps_title =
+      "PID            PPID           STAT           TICKS   "
+      "     COMMAND\n";
   sys_write(STDOUT_NO, ps_title, strlen(ps_title));
   /* print task info for all tasks  */
   list_traversal(&thread_all_list, print_task_info, 0);

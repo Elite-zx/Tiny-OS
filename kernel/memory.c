@@ -243,7 +243,7 @@ static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
  * entry in the page (The high 10 bits of vaddr should be 1 to access this PDE)
  * directory to access the page directory itself, thus enabling the calculation
  * of the virtual address that can be used to access the appropriate PTE within
- * the page table. See Page.391 for details.
+ * the pageable. See Page.391 for details.
  *
  * Return: The virtual address of the page table entry corresponding to the
  * given virtual address.

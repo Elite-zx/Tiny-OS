@@ -3,6 +3,7 @@
  * Time: 2023-11-28
  */
 #include "stdio.h"
+
 #include "global.h"
 #include "stdint.h"
 #include "string.h"
@@ -53,30 +54,30 @@ uint32_t vsprintf(char *str, const char *format, va_list ap) {
     /* Get the character after the character %, which represents the base */
     ch = *(++iter);
     switch (ch) {
-    case 'x':
-      arg_int = va_arg(ap, int);
-      itoa(arg_int, &buf_ptr, 16);
-      ch = *(++iter);
-      break;
-    case 'c':
-      *(buf_ptr++) = va_arg(ap, char);
-      ch = *(++iter);
-      break;
-    case 'd':
-      arg_int = va_arg(ap, int);
-      if (arg_int < 0) {
-        arg_int = 0 - arg_int;
-        *(buf_ptr++) = '-';
-      }
-      itoa(arg_int, &buf_ptr, 10);
-      ch = *(++iter);
-      break;
-    case 's':
-      arg_str = va_arg(ap, char *);
-      strcpy(buf_ptr, arg_str);
-      buf_ptr += strlen(arg_str);
-      ch = *(++iter);
-      break;
+      case 'x':
+        arg_int = va_arg(ap, int);
+        itoa(arg_int, &buf_ptr, 16);
+        ch = *(++iter);
+        break;
+      case 'c':
+        *(buf_ptr++) = va_arg(ap, char);
+        ch = *(++iter);
+        break;
+      case 'd':
+        arg_int = va_arg(ap, int);
+        if (arg_int < 0) {
+          arg_int = 0 - arg_int;
+          *(buf_ptr++) = '-';
+        }
+        itoa(arg_int, &buf_ptr, 10);
+        ch = *(++iter);
+        break;
+      case 's':
+        arg_str = va_arg(ap, char *);
+        strcpy(buf_ptr, arg_str);
+        buf_ptr += strlen(arg_str);
+        ch = *(++iter);
+        break;
     }
   }
   return strlen(str);
