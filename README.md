@@ -2,7 +2,7 @@
 # Tiny-OS: Build Your Own Operating System
 > Learning by doing
 
-参照操作系统真象还原从0开始自制操作系统， 实现了一个小型操作系统，代码规模如下:
+参照《操作系统真象还原》从0开始自制操作系统， 实现了一个小型操作系统，代码规模如下:
 
 ![Pasted image 20231216115142](image/Pasted%20image%2020231216115142.png)
 
